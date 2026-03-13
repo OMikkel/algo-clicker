@@ -1,0 +1,17 @@
+{
+    "int-plus-uuid":{
+        "type":"IntPlus",
+        "v1" : {
+            "int-lit-uuid1": {
+                "type":"IntLit",
+                "v":67
+            }
+        },
+        "v2" : {
+            "int-lit-uuid2": {
+                "type":"IntLit",
+                "v":42
+            }
+        }
+    }
+}
