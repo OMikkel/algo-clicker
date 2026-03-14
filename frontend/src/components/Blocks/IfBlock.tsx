@@ -1,53 +1,52 @@
-import type { Block } from "../../context/GlobalStateContext";
-import { getKeysFromObject } from "../../utils/objects";
-import BlockSelector from "../BlockSelector";
+import { BLOCK_REGISTRY } from "../../constants/AstConditions";
+import type { IfBlock } from "../../types/blocks/if";
 import DraggableElement from "../DraggableElement";
 import DropZone from "../DropZone";
 
 type Props = {
-	path: string;
-	block: Block;
+	block: IfBlock;
 };
 
-export default function IfBlock({ path, block }: Props) {
-	console.log("Rendering IfBlock", { path, block });
-
-    const conditionKeys = getKeysFromObject(block.cond, "")
-    const trueKeys = getKeysFromObject(block.ifBlock, "")
-    const falseKeys = getKeysFromObject(block.elseBlock, "")
-
-
+export default function IfBlock({ block }: Props) {
 	return (
 		<DraggableElement
-			id={path}
-			className="bg-blue-500 min-w-72 p-4 rounded-md flex flex-col gap-4 border"
+			id={block.id}
+			type="If"
+            className="bg-blue-500 text-white p-3 rounded-md"
 		>
+            <div className="min-w-72 rounded-md flex flex-col gap-4">
 			<div className="flex items-center gap-4">
 				<p>If</p>
-				<DropZone id={`${path}.cond`} keys={conditionKeys} blocks={block.cond} className="flex-1">
-				</DropZone>
+				<DropZone
+					id={`${block.id}-cond`}
+					slot="cond"
+					maxElements={1}
+					accepts={BLOCK_REGISTRY.If.slots.find(s => s.id === "cond")?.accepts || []}
+					blockIds={block.cond ? [block.cond] : null}
+					className="flex-1 bg-red-500"
+				/>
 			</div>
 
 			<div className="flex flex-col items-start justify-center gap-4">
 				<DropZone
-					id={`${path}.ifBlock`}
-                    keys={trueKeys}
-                    blocks={block.ifBlock}
+					id={`${block.id}-ifBlock`}
+					slot="ifBlock"
+					accepts={BLOCK_REGISTRY.If.slots.find(s => s.id === "ifBlock")?.accepts || []}
+					blockIds={block.ifBlock}
 					className="flex flex-1 w-full flex-col gap-2"
-				>
-                   
-				</DropZone>
+				/>
 
 				<p>Else</p>
 
 				<DropZone
-					id={`${path}.elseBlock`}
-                    keys={falseKeys}
-                    blocks={block.elseBlock}
+					id={`${block.id}-elseBlock`}
+					slot="elseBlock"
+					accepts={BLOCK_REGISTRY.If.slots.find(s => s.id === "elseBlock")?.accepts || []}
+					blockIds={block.elseBlock}
 					className="flex flex-1 w-full flex-col gap-2"
-				>
-				</DropZone>
+				></DropZone>
 			</div>
+            </div>
 		</DraggableElement>
 	);
 }

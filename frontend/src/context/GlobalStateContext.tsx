@@ -1,24 +1,27 @@
 import React, { useState } from "react";
+import { testSampleIfs, testSampleInts } from "../tests/data";
+import type { BaseBlock, BlockId, Blocks } from "../types/blocks";
+import type { IfBlock } from "../types/blocks/if";
 
-export type Blocks = Record<string, Block>;
-
-export type Block = {
-	type: string;
-    [key: string]: any;
+export type BlockState = {
+	blocks: Blocks;
+	rootBlocks: BlockId[];
 };
 
-type JsonObject = Record<string, unknown>;
-
 type DragOperationEvent = {
-    operation: {
-        source?: { id: string | number };
-        target?: { id: string | number };
-    };
+	operation: {
+		source?: any;
+		target?: any;
+	};
 };
 
 type GlobalState = {
-	blockState: Blocks;
-    onDragEnd: (event: DragOperationEvent) => void;
+	blocks: Blocks;
+	rootBlocks: BlockId[];
+	draggedBlockId: BlockId | null;
+    updateBlockData: <T>(blockId: string, newData: Partial<T>) => void;
+	onDragEnd: (event: DragOperationEvent) => void;
+	onDragStart: (event: DragOperationEvent) => void;
 };
 
 const GlobalStateContext = React.createContext<GlobalState | null>(null);
@@ -39,161 +42,179 @@ export default function GlobalStateProvider({
 }: {
 	children: React.ReactNode;
 }) {
-    const [blockState, setBlockState] = useState<Blocks>({
-		"if-block-uuid1": {
-			type: "If",
-			cond: {
-				"id-bool-lit-uuid1": {
-					type: "BoolLit",
-					b: true,
-				},
-			},
-			ifBlock: {},
-			elseBlock: {},
-		},
-        "if-block-uuid2": {
-			type: "If",
-			cond: {
-				"id-bool-lit-uuid2": {
-					type: "BoolLit",
-					b: false,
-				},
-			},
-			ifBlock: {},
-			elseBlock: {},
-		},
-	});
+	const [draggedBlockId, setDraggedBlockId] = useState<BlockId | null>(null);
+	const [blockState, setBlockState] = useState<BlockState>(testSampleIfs);
 
-	const isRecord = (value: unknown): value is JsonObject => {
-		return typeof value === "object" && value !== null && !Array.isArray(value);
+	const onDragStart = (event: any) => {
+        const source = event.operation.source;
+        if (!source) {
+            console.warn("Drag start event missing source:", event);
+            return;
+        }
+
+        setDraggedBlockId(source.id)
 	};
 
-	const getObjectByPath = (obj: JsonObject, path: string): unknown | null => {
-		if (!path) {
-			return null;
-		}
+    const updateBlockData = (blockId: string, newData: Partial<Block>) => {
+    setBlockState((prev) => {
+        // 1. Ensure the block exists
+        if (!prev.blocks[blockId]) return prev;
 
-		const keys = path.split(".");
-		let current: unknown = obj;
+        return {
+            ...prev,
+            blocks: {
+                ...prev.blocks,
+                [blockId]: {
+                    ...prev.blocks[blockId],
+                    ...newData, // Overwrites existing keys with new data
+                },
+            },
+        };
+    });
+};
 
-		for (const key of keys) {
-			if (!isRecord(current) || !(key in current)) {
-				return null;
-			}
-			current = current[key];
-		}
+	const onDragEnd = (event: any) => {
+		const { operation } = event;
+		const { source, target } = operation;
+		if (!source || !target) return;
 
-		return current;
-	};
+		const sourceId = String(source.id).replace("draggable:", "");
+		const rawTargetId = String(target.id).replace("container:", "");
+		const targetSlot = target.data?.slot;
+        
+		// Logic to extract the actual Block ID
+		// If targetId is "if123-cond", targetBlockId becomes "if123"
+		// If targetId is "root", it stays "root"
+		const targetBlockId =
+			targetSlot === "root"
+				? "root"
+				: rawTargetId.replace(`-${targetSlot}`, "");
 
-	const setObjectByPath = (obj: JsonObject, path: string, value: unknown) => {
-		const keys = path.split(".");
-		let current: JsonObject = obj;
-
-		for (let i = 0; i < keys.length - 1; i++) {
-			const key = keys[i];
-			const next = current[key];
-
-			if (!isRecord(next)) {
-				current[key] = {};
-			}
-
-			current = current[key] as JsonObject;
-		}
-
-		current[keys[keys.length - 1]] = value;
-	};
-
-	const getContainerPathFromItemPath = (itemPath: string) => {
-		const segments = itemPath.split(".");
-		if (segments.length <= 1) {
-			return "";
-		}
-
-		segments.pop();
-		return segments.join(".");
-	};
-
-	const getFirstChildKey = (container: JsonObject) => {
-		const keys = Object.keys(container);
-		return keys.length > 0 ? keys[0] : null;
-	};
-
-	const onDragEnd = (event: DragOperationEvent) => {
-        console.log("Drag ended:", event);
-		const sourceId = String(event.operation.source?.id ?? "");
-		const targetId = String(event.operation.target?.id ?? "");
-        const sourceParentId = String(sourceId.split(".").slice(0, -1).join("."));
-        const targetParentId = String(targetId.split(".").slice(0, -1).join("."));
-
-        console.log("Source ID:", sourceId);
-        console.log("Target ID:", targetId);
-        console.log("Source Parent ID:", sourceParentId);
-        console.log("Target Parent ID:", targetParentId);
-
-
-
-		if (!sourceId || !targetId || targetId.includes(sourceId)) {
-			return;
-		}
+        if (sourceId === targetBlockId) {
+            console.warn("Cannot drop a block onto itself:", sourceId);
+            return;
+        }
+        
 
 		setBlockState((prev) => {
-			const nextState = structuredClone(prev) as Blocks;
-
-			const sourceBlock = getObjectByPath(nextState, sourceId);
-			if (sourceBlock == null) {
+			const nextBlocks = { ...prev.blocks };
+			let nextRoot = [...prev.rootBlocks];
+			// Validation: Ensure the block actually exists in our flat state
+			if (!prev.blocks[sourceId]) {
+				console.error(`Block ${sourceId} not found in state!`);
 				return prev;
 			}
 
-			const sourceContainerPath = getContainerPathFromItemPath(sourceId);
-			const sourceContainerNode =
-				sourceContainerPath === ""
-					? nextState
-					: getObjectByPath(nextState, sourceContainerPath);
-			const sourceKey = sourceId.split(".").pop();
+			// Now this will work because sourceId is a valid key!
+			const movingBlock = { ...nextBlocks[sourceId] };
+			const oldParentId = movingBlock.parentId;
 
-			if (!isRecord(sourceContainerNode) || !sourceKey) {
-				return prev;
+
+            const isMaxElementsReached =
+                target.data?.maxElements !== undefined &&
+                (target.data?.currentElements ?? 0) >= target.data.maxElements;
+
+            if (isMaxElementsReached) {
+                console.warn("Cannot drop block, max elements reached for target:", targetBlockId);
+                return prev;
+            }
+
+            const acceptsDraggedBlock = target.data?.accepts
+                ? target.data.accepts.includes(movingBlock.type)
+                : targetSlot === "root";
+                
+            if (!acceptsDraggedBlock) {
+                console.warn("Cannot drop block, target does not accept this block type:", targetBlockId);
+                return prev;
+            }
+
+
+
+			console.log("Drag End Event:", {
+				sourceId,
+				targetId: targetBlockId,
+				targetSlot,
+				sourceData: source.data,
+				targetData: target.data,
+			});
+
+			// 2. REMOVE from old location
+			if (oldParentId === "root") {
+				nextRoot = nextRoot.filter((id) => id !== sourceId);
+			} else if (nextBlocks[oldParentId]) {
+				const oldParent = { ...nextBlocks[oldParentId] } as BaseBlock;
+				if (oldParent.type === "If") {
+					if (oldParent.cond === sourceId) oldParent.cond = null;
+					// Handle arrays if your slots are arrays (ifBlock/elseBlock)
+					if (oldParent.ifBlock)
+						oldParent.ifBlock = oldParent.ifBlock.filter(
+							(id) => id !== sourceId,
+						);
+					if (oldParent.elseBlock)
+						oldParent.elseBlock = oldParent.elseBlock.filter(
+							(id) => id !== sourceId,
+						);
+					nextBlocks[oldParentId] = oldParent;
+				}else if (oldParent.type === "IntPlus") {
+                    if (oldParent.v1 === sourceId) oldParent.v1 = null;
+                    if (oldParent.v2 === sourceId) oldParent.v2 = null;
+                    nextBlocks[oldParentId] = oldParent;
+                }else if (oldParent.type === "IntMinus") {
+                    if (oldParent.v1 === sourceId) oldParent.v1 = null;
+                    if (oldParent.v2 === sourceId) oldParent.v2 = null;
+                    nextBlocks[oldParentId] = oldParent;
+                }
 			}
 
-			const targetNode = getObjectByPath(nextState, targetId);
+			// 3. ADD to new location
+			if (targetSlot === "root") {
+				movingBlock.parentId = "root";
+				nextRoot.push(sourceId);
+			} else {
+				movingBlock.parentId = targetBlockId;
+				const newParent = { ...nextBlocks[targetBlockId] } as IfBlock;
 
-			if (isRecord(targetNode)) {
-				const targetContainer = targetNode;
-				const targetExistingKey = getFirstChildKey(targetContainer);
-
-				if (targetExistingKey == null) {
-					delete sourceContainerNode[sourceKey];
-					targetContainer[sourceKey] = sourceBlock;
-                        console.log("Updated state:", nextState);
-                    
-					return nextState;
+				if (targetSlot === "cond") {
+					// SWAPPING LOGIC: If condition already has a block, send it to root
+					if (newParent.cond) {
+						const existingId = newParent.cond;
+						nextBlocks[existingId] = {
+							...nextBlocks[existingId],
+							parentId: "root",
+						};
+						nextRoot.push(existingId);
+					}
+					newParent.cond = sourceId;
+				} else if (targetSlot === "ifBlock") {
+					newParent.ifBlock = [...(newParent.ifBlock || []), sourceId];
+				} else if (targetSlot === "elseBlock") {
+					newParent.elseBlock = [...(newParent.elseBlock || []), sourceId];
 				}
 
-				const targetExistingBlock = targetContainer[targetExistingKey];
-				targetContainer[targetExistingKey] = sourceBlock;
-				sourceContainerNode[sourceKey] = targetExistingBlock;
-            console.log("Updated state:", nextState);
-
-				return nextState;
+				nextBlocks[targetBlockId] = newParent;
 			}
 
-			if (targetNode == null) {
-            console.log("Updated state:", prev);
+			nextBlocks[sourceId] = movingBlock;
 
-				return prev;
-			}
-
-			setObjectByPath(nextState, targetId, sourceBlock);
-			setObjectByPath(nextState, sourceId, targetNode);
-
-            console.log("Updated state:", nextState);
-			return nextState;
+            setDraggedBlockId(null);
+			return {
+				blocks: nextBlocks,
+				rootBlocks: nextRoot,
+			};
 		});
 	};
-    
+
 	return (
-		<GlobalStateContext.Provider value={{ blockState, onDragEnd }}>
+		<GlobalStateContext.Provider
+			value={{
+				blocks: blockState.blocks,
+				rootBlocks: blockState.rootBlocks,
+				draggedBlockId,
+                updateBlockData,
+				onDragEnd,
+				onDragStart,
+			}}
+		>
 			{children}
 		</GlobalStateContext.Provider>
 	);
