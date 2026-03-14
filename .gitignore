@@ -1,2 +1,7 @@
 *.class
 *.tasty
+
+.metals
+.scala-build
+.bsp
+.vscode
