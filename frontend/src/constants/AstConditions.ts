@@ -1,9 +1,11 @@
-const IntType = ["IntLit" , "IntPlus" , "IntMinus" ,"IntMult" , "IntDiv" , "IntMod" ,"IntArrayLength"];
-const BoolType = ["BoolLit" , "BoolVar" , "BoolGreater" , "BoolGreaterEq" , "BoolLess" , "BoolLessEq" , "BoolEq" , "BoolNeq" , "BoolAnd" , "BoolOr" , "BoolNot"];
-const ArrayType = ["ArrayLit" , "ArrayVar" , "ArrayRange" , "ArrayConcat"];
+const IntType = ["IntLit", "IntPlus", "IntMinus", "IntMult", "IntDiv", "IntMod", "IntArrayLength"];
+const BoolType = ["BoolLit", "BoolVar", "BoolGreater", "BoolGreaterEq", "BoolLess", "BoolLessEq", "BoolEq", "BoolNeq", "BoolAnd", "BoolOr", "BoolNot"];
+const ArrayType = ["ArrayLit", "ArrayVar", "ArrayRange", "ArrayConcat"];
 const Statement = ["IntAssign", "BoolAssign", "If", "While", "Swap", "ArrayInsert", "ArrayRemove"];
 
-export const BLOCK_REGISTRY: Record<string, { color: string, slots: any[] }> = {
+export type AST = { color: string, slots: any[] }
+
+export const BLOCK_REGISTRY: Record<string, AST> = {
     // Statements
     If: {
         color: "bg-blue-600",
@@ -15,9 +17,7 @@ export const BLOCK_REGISTRY: Record<string, { color: string, slots: any[] }> = {
     },
     BoolLit: {
         color: "bg-green-500",
-        slots: [
-            { id: "b", label: "Value", accepts: [], max: 0 }, // Special case, will be edited with BlockDataEditor
-        ]
+        slots: []
     },
     IntAssign: {
         color: "bg-purple-600",
@@ -27,12 +27,10 @@ export const BLOCK_REGISTRY: Record<string, { color: string, slots: any[] }> = {
         ]
     },
     // Int Operations
-    // IntLit: {
-    //     color: "bg-purple-500",
-    //     slots: [
-    //         { id: "v", label: "Value", accepts: [], max: 0 }, // Special case, will be edited with BlockDataEditor
-    //     ]
-    // },
+    IntLit: {
+        color: "bg-purple-500",
+        slots: []
+    },
     IntPlus: {
         color: "bg-blue-500",
         slots: [

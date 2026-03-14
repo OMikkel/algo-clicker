@@ -1,7 +1,8 @@
 import React, { useState } from "react";
-import { testSampleIfs, testSampleInts } from "../tests/data";
+import { testIntsAndIfs, testSampleIfs, testSampleInts } from "../tests/data";
 import type { BaseBlock, BlockId, Blocks } from "../types/blocks";
 import type { IfBlock } from "../types/blocks/if";
+import { DragDropProvider, DragOverlay } from "@dnd-kit/react";
 
 export type BlockState = {
 	blocks: Blocks;
@@ -19,9 +20,7 @@ type GlobalState = {
 	blocks: Blocks;
 	rootBlocks: BlockId[];
 	draggedBlockId: BlockId | null;
-    updateBlockData: <T>(blockId: string, newData: Partial<T>) => void;
-	onDragEnd: (event: DragOperationEvent) => void;
-	onDragStart: (event: DragOperationEvent) => void;
+	updateBlockData: <T>(blockId: string, newData: Partial<T>) => void;
 };
 
 const GlobalStateContext = React.createContext<GlobalState | null>(null);
@@ -43,35 +42,35 @@ export default function GlobalStateProvider({
 	children: React.ReactNode;
 }) {
 	const [draggedBlockId, setDraggedBlockId] = useState<BlockId | null>(null);
-	const [blockState, setBlockState] = useState<BlockState>(testSampleIfs);
+	const [blockState, setBlockState] = useState<BlockState>(testIntsAndIfs);
 
 	const onDragStart = (event: any) => {
-        const source = event.operation.source;
-        if (!source) {
-            console.warn("Drag start event missing source:", event);
-            return;
-        }
+		const source = event.operation.source;
+		if (!source) {
+			console.warn("Drag start event missing source:", event);
+			return;
+		}
 
-        setDraggedBlockId(source.id)
+		setDraggedBlockId(source.id);
 	};
 
-    const updateBlockData = (blockId: string, newData: Partial<Block>) => {
-    setBlockState((prev) => {
-        // 1. Ensure the block exists
-        if (!prev.blocks[blockId]) return prev;
+	const updateBlockData = (blockId: string, newData: Partial<Block>) => {
+		setBlockState((prev) => {
+			// 1. Ensure the block exists
+			if (!prev.blocks[blockId]) return prev;
 
-        return {
-            ...prev,
-            blocks: {
-                ...prev.blocks,
-                [blockId]: {
-                    ...prev.blocks[blockId],
-                    ...newData, // Overwrites existing keys with new data
-                },
-            },
-        };
-    });
-};
+			return {
+				...prev,
+				blocks: {
+					...prev.blocks,
+					[blockId]: {
+						...prev.blocks[blockId],
+						...newData, // Overwrites existing keys with new data
+					},
+				},
+			};
+		});
+	};
 
 	const onDragEnd = (event: any) => {
 		const { operation } = event;
@@ -81,7 +80,7 @@ export default function GlobalStateProvider({
 		const sourceId = String(source.id).replace("draggable:", "");
 		const rawTargetId = String(target.id).replace("container:", "");
 		const targetSlot = target.data?.slot;
-        
+
 		// Logic to extract the actual Block ID
 		// If targetId is "if123-cond", targetBlockId becomes "if123"
 		// If targetId is "root", it stays "root"
@@ -90,11 +89,10 @@ export default function GlobalStateProvider({
 				? "root"
 				: rawTargetId.replace(`-${targetSlot}`, "");
 
-        if (sourceId === targetBlockId) {
-            console.warn("Cannot drop a block onto itself:", sourceId);
-            return;
-        }
-        
+		if (sourceId === targetBlockId) {
+			console.warn("Cannot drop a block onto itself:", sourceId);
+			return;
+		}
 
 		setBlockState((prev) => {
 			const nextBlocks = { ...prev.blocks };
@@ -109,26 +107,29 @@ export default function GlobalStateProvider({
 			const movingBlock = { ...nextBlocks[sourceId] };
 			const oldParentId = movingBlock.parentId;
 
+			const isMaxElementsReached =
+				target.data?.maxElements !== undefined &&
+				(target.data?.currentElements ?? 0) >= target.data.maxElements;
 
-            const isMaxElementsReached =
-                target.data?.maxElements !== undefined &&
-                (target.data?.currentElements ?? 0) >= target.data.maxElements;
+			if (isMaxElementsReached) {
+				console.warn(
+					"Cannot drop block, max elements reached for target:",
+					targetBlockId,
+				);
+				return prev;
+			}
 
-            if (isMaxElementsReached) {
-                console.warn("Cannot drop block, max elements reached for target:", targetBlockId);
-                return prev;
-            }
+			const acceptsDraggedBlock = target.data?.accepts
+				? target.data.accepts.includes(movingBlock.type)
+				: targetSlot === "root";
 
-            const acceptsDraggedBlock = target.data?.accepts
-                ? target.data.accepts.includes(movingBlock.type)
-                : targetSlot === "root";
-                
-            if (!acceptsDraggedBlock) {
-                console.warn("Cannot drop block, target does not accept this block type:", targetBlockId);
-                return prev;
-            }
-
-
+			if (!acceptsDraggedBlock) {
+				console.warn(
+					"Cannot drop block, target does not accept this block type:",
+					targetBlockId,
+				);
+				return prev;
+			}
 
 			console.log("Drag End Event:", {
 				sourceId,
@@ -155,15 +156,15 @@ export default function GlobalStateProvider({
 							(id) => id !== sourceId,
 						);
 					nextBlocks[oldParentId] = oldParent;
-				}else if (oldParent.type === "IntPlus") {
-                    if (oldParent.v1 === sourceId) oldParent.v1 = null;
-                    if (oldParent.v2 === sourceId) oldParent.v2 = null;
-                    nextBlocks[oldParentId] = oldParent;
-                }else if (oldParent.type === "IntMinus") {
-                    if (oldParent.v1 === sourceId) oldParent.v1 = null;
-                    if (oldParent.v2 === sourceId) oldParent.v2 = null;
-                    nextBlocks[oldParentId] = oldParent;
-                }
+				} else if (oldParent.type === "IntPlus") {
+					if (oldParent.v1 === sourceId) oldParent.v1 = null;
+					if (oldParent.v2 === sourceId) oldParent.v2 = null;
+					nextBlocks[oldParentId] = oldParent;
+				} else if (oldParent.type === "IntMinus") {
+					if (oldParent.v1 === sourceId) oldParent.v1 = null;
+					if (oldParent.v2 === sourceId) oldParent.v2 = null;
+					nextBlocks[oldParentId] = oldParent;
+				}
 			}
 
 			// 3. ADD to new location
@@ -196,7 +197,7 @@ export default function GlobalStateProvider({
 
 			nextBlocks[sourceId] = movingBlock;
 
-            setDraggedBlockId(null);
+			setDraggedBlockId(null);
 			return {
 				blocks: nextBlocks,
 				rootBlocks: nextRoot,
@@ -204,18 +205,27 @@ export default function GlobalStateProvider({
 		});
 	};
 
+	const activeBlock = draggedBlockId ? blockState.blocks[draggedBlockId] : null;
+
 	return (
 		<GlobalStateContext.Provider
 			value={{
 				blocks: blockState.blocks,
 				rootBlocks: blockState.rootBlocks,
 				draggedBlockId,
-                updateBlockData,
-				onDragEnd,
-				onDragStart,
+				updateBlockData,
 			}}
 		>
-			{children}
+			<DragDropProvider onDragEnd={onDragEnd} onDragStart={onDragStart}>
+				{children}
+				<DragOverlay>
+					{activeBlock ? (
+						<div className="p-3 bg-gray-700 border-2 border-blue-500 rounded-md shadow-2xl opacity-90 cursor-grabbing transform scale-105">
+							<span className="text-white font-bold">{activeBlock.type}</span>
+						</div>
+					) : null}
+				</DragOverlay>
+			</DragDropProvider>
 		</GlobalStateContext.Provider>
 	);
 }
