@@ -10,9 +10,9 @@ object Interpreter {
   def eval(v: IntType, env: Env): Int = v match {
     case IntLit(v: Int) => v
     case IntVarLit(id: Id) => lookupInt(id, env)
-    case IntVarListLookup(id: Id, index: Int) =>
+    case IntVarListLookup(id: Id, index: IntType) =>
       val array: List[Int] = lookupArr(id, env)
-      array(index)
+      array(eval(index, env))
     case IntPlus(v1: IntType, v2: IntType) => eval(v1, env) + eval(v2, env)
     case IntMinus(v1: IntType, v2: IntType) => eval(v1, env) - eval(v2, env)
     case IntMult(v1: IntType, v2: IntType) => eval(v1, env) * eval(v2, env)
@@ -47,8 +47,8 @@ object Interpreter {
   }
 
   def eval(s: Statement, env: Env): Unit = s match {
-    case IntAssign(variable, value) => ???
-    case BoolAssign(variable, value) => ???
+    case IntAssign(variable, value) => setInt(getId(variable), eval(value, env), env)
+    case BoolAssign(variable, value) => setBool(variable.id, eval(value, env), env)
     case If(cond, thenBlock, elseBlock) => ???
     case While(cond, body) => ???
     case Swap(a, b) => ???
@@ -112,6 +112,75 @@ object Interpreter {
     // Should never get to this point
     throw InterpreterError("Unknown error?!!?!?!?!?!")
   }
+
+
+  def setInt(id: Id, value: Int, env: Env): Unit = {
+    var env1: Option[Env] = Some(env)
+    var existing: Option[Int] = None
+    var running = true
+    while (running) {
+      env1 match {
+        case Some(env2) =>
+          existing = env2.intEnv.get(id)
+          existing match {
+            case Some(n) =>
+              env2.intEnv = env2.intEnv.updated(id, value)
+              running = false
+            case None => env1 = env2.parent_env
+          }
+        case None => running = false
+      }
+    }
+    env.intEnv = env.intEnv + (id -> value)
+  }
+
+  def setBool(id: Id, value: Boolean, env: Env): Unit = {
+    var env1: Option[Env] = Some(env)
+    var existing: Option[Boolean] = None
+    var running = true
+    while (running) {
+      env1 match {
+        case Some(env2) =>
+          existing = env2.boolEnv.get(id)
+          existing match {
+            case Some(n) =>
+              env2.boolEnv = env2.boolEnv.updated(id, value)
+              running = false
+            case None => env1 = env2.parent_env
+          }
+        case None => running = false
+      }
+    }
+    env.boolEnv = env.boolEnv + (id -> value)
+  }
+
+  def setArr(id: Id, value: List[Int], env: Env): Unit = {
+    var env1: Option[Env] = Some(env)
+    var existing: Option[List[Int]] = None
+    var running = true
+    while (running) {
+      env1 match {
+        case Some(env2) =>
+          existing = env2.arrEnv.get(id)
+          existing match {
+            case Some(n) =>
+              env2.arrEnv = env2.arrEnv.updated(id, value)
+              running = false
+            case None => env1 = env2.parent_env
+          }
+        case None => running = false
+      }
+    }
+    env.arrEnv = env.arrEnv + (id -> value)
+  }
+
+  def getId(idExp: IntVar): Id = {
+    idExp match {
+      case IntVarLit(id) => id
+      case IntVarListLookup(id, index) => throw InterpreterError("Wtf are u doing? Assignment side lookup in list? What da helly")
+    }
+  }
+
 
 
 

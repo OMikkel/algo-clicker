@@ -12,7 +12,6 @@ object TestInterpreter {
   val listEnvInEnvOn_A: Env = Env(Map(),Map(),Map(), Some(Env(Map(), Map(), Map("A" -> List(5,8,1)), None)))
 
 
-
   def main(args: Array[String]): Unit = {
     // Int tests
     test(IntLit(1), 1)
@@ -23,8 +22,8 @@ object TestInterpreter {
     test(IntMod(IntLit(3), IntLit(2)), 1)
     test(IntVarLit("a"), 5, intEnvOn_a)
     test(IntVarLit("a"), 5, intEnvInEnvOn_a)
-    test(IntVarListLookup("A", 1), 8, listEnvOn_A)
-    test(IntVarListLookup("A", 1), 8, listEnvInEnvOn_A)
+    test(IntVarListLookup("A", IntLit(1)), 8, listEnvOn_A)
+    test(IntVarListLookup("A", IntLit(1)), 8, listEnvInEnvOn_A)
     test(IntArrayLength(ArrayLit(List(4,6,9))), 3)
 
     // Bool tests
@@ -44,9 +43,40 @@ object TestInterpreter {
     test(ArrayConcat(ArrayLit(List(0,1,2)), ArrayLit(List(3,4,5))), List(0,1,2,3,4,5))
 
     // Statement tests
-    
-    
+
+    // Int assign
+    var env = intEnvOn_a
+    test(IntAssign(IntVarLit("a"), IntLit(4)), env)
+    assert(lookupInt("a", env) == 4)
+    env = intEnvInEnvOn_a
+    test(IntAssign(IntVarLit("a"), IntLit(3)), env)
+    assert(lookupInt("a", env) == 3)
+    env = Env(Map(), Map(), Map(), None)
+    test(IntAssign(IntVarLit("a"), IntLit(2)), env)
+    assert(lookupInt("a", env) == 2)
+
+    // Bool assign
+    env = boolEnvOn_a
+    test(BoolAssign(BoolVar("a"), BoolLit(false)), env)
+    assert(lookupBool("a", env) == false)
+    env = boolEnvInEnvOn_a
+    test(BoolAssign(BoolVar("a"), BoolLit(false)), env)
+    assert(lookupBool("a", env) == false)
+    env = Env(Map(), Map(), Map(), None)
+    test(BoolAssign(BoolVar("a"), BoolLit(false)), env)
+    assert(lookupBool("a", env) == false)
+
+    // If statement
+
+
+    // While loop
+
+    // Swap statement
+
+    // 
+
     // Block tests
+
 
 
     println("😝😎😅😵‍💫🧌😁✅✅✅    ALL TESTS PASSED!!!!!!    ✅✅✅😝😎😅😵‍💫🧌😁")

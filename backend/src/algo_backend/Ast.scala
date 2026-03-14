@@ -26,7 +26,7 @@ object Ast {
 
   case class IntVarLit(id: Id) extends IntVar
 
-  case class IntVarListLookup(id: Id, index: Int) extends IntVar
+  case class IntVarListLookup(id: Id, index: IntType) extends IntVar
 
 
   abstract sealed class BoolType
