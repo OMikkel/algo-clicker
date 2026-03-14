@@ -1,9 +1,8 @@
 import { DragDropProvider, DragOverlay } from "@dnd-kit/react";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { BLOCK_REGISTRY } from "../constants/AstConditions";
 import { testSampleInts } from "../tests/data";
-import type { BaseBlock, Block, BlockId, Blocks } from "../types/blocks";
-import type { IfBlock } from "../types/blocks/if";
+import type { Block, BlockId, Blocks } from "../types/blocks";
 import { createBlockFromAST } from "../utils/objects";
 
 export type BlockState = {
@@ -63,7 +62,14 @@ export default function GlobalStateProvider({
 			),
 		},
 		templates: ASTs.map((ast) => ast.id),
-	});
+    });
+    
+    useEffect(() => {
+        const storedData = window.localStorage.getItem("algo-playground-storage");
+        if (storedData) {
+            setBlockState(JSON.parse(storedData));
+        }
+    }, []);
 
 	const onDragStart = (event: any) => {
 		const source = event.operation.source;
@@ -76,7 +82,7 @@ export default function GlobalStateProvider({
 	};
 
 	const updateBlockData = (blockId: string, newData: Partial<Block>) => {
-		setBlockState((prev) => {
+		updateBlockState((prev) => {
 			// 1. Ensure the block exists
 			if (!prev.blocks[blockId]) return prev;
 
@@ -91,7 +97,12 @@ export default function GlobalStateProvider({
 				},
 			};
 		});
-	};
+    };
+    
+    const updateBlockState = (callback: (prev: BlockState) => BlockState) => {
+        window.localStorage.setItem("algo-playground-storage", JSON.stringify(blockState));
+        setBlockState(callback)
+    }
 
 	const onDragEnd = (event: any) => {
 		const { operation } = event;
@@ -109,7 +120,7 @@ export default function GlobalStateProvider({
 				? "root"
 				: rawTargetId.replace(`-${targetSlot}`, "");
 
-		setBlockState((prev) => {
+		updateBlockState((prev) => {
 			const nextBlocks = { ...prev.blocks };
 			let nextRoot = [...prev.rootBlocks];
 			const movingBlock = { ...nextBlocks[sourceId] };
@@ -119,31 +130,71 @@ export default function GlobalStateProvider({
 			if (isTemplate) {
 				// If dragging from template, create a new block instance instead of moving the template itself
 				const templateType = movingBlock.type;
-				const newBlock = createBlockFromAST(
-					templateType,
-					"block",
-					targetBlockId,
-				);
+				const newBlock = createBlockFromAST(templateType, "", targetBlockId);
+				console.log("newBlock:", newBlock);
+
+				if (targetSlot && targetSlot == "root") {
+					nextRoot.push(newBlock.id);
+				} else {
+					const newParent = { ...nextBlocks[targetBlockId] };
+					const isArraySlot = Array.isArray(newParent[targetSlot]);
+
+					if (isArraySlot) {
+						newParent[targetSlot] = [
+							...(newParent[targetSlot] || []),
+							sourceId,
+						];
+					} else {
+						// SWAPPING LOGIC: If a single-item slot (like 'cond') is full, kick the old block to root
+						if (newParent[targetSlot]) {
+							const displacedId = newParent[targetSlot];
+							nextBlocks[displacedId] = {
+								...nextBlocks[displacedId],
+								parentId: "root",
+							};
+							nextRoot.push(displacedId);
+						}
+						newParent[targetSlot] = sourceId;
+					}
+					nextBlocks[targetBlockId] = newParent;
+				}
+
 				nextBlocks[newBlock.id] = newBlock;
-				nextRoot.push(newBlock.id);
-				return { blocks: nextBlocks, rootBlocks: nextRoot };
+
+				console.log(
+					"Created new block from template:",
+					newBlock,
+					"and updated state:",
+					{
+						blocks: nextBlocks,
+						rootBlocks: nextRoot,$
+						templates: prev.templates,
+					},
+				);
+				return {
+					blocks: nextBlocks,
+					rootBlocks: nextRoot,
+					templates: prev.templates,
+				};
 			}
 
 			// --- STEP 1: REMOVE FROM OLD LOCATION ---
-			if (oldParentId === "root") {
-				nextRoot = nextRoot.filter((id) => id !== sourceId);
-			} else if (nextBlocks[oldParentId]) {
-				const oldParent = { ...nextBlocks[oldParentId] };
-				const slotValue = oldParent[movingBlock.parentSlot];
+			if (!isTemplate) {
+				if (oldParentId === "root") {
+					nextRoot = nextRoot.filter((id) => id !== sourceId);
+				} else if (nextBlocks[oldParentId]) {
+					const oldParent = { ...nextBlocks[oldParentId] };
+					const slotValue = oldParent[movingBlock.parentSlot];
 
-				if (Array.isArray(slotValue)) {
-					oldParent[movingBlock.parentSlot] = slotValue.filter(
-						(id) => id !== sourceId,
-					);
-				} else {
-					oldParent[movingBlock.parentSlot] = null;
+					if (Array.isArray(slotValue)) {
+						oldParent[movingBlock.parentSlot] = slotValue.filter(
+							(id) => id !== sourceId,
+						);
+					} else {
+						oldParent[movingBlock.parentSlot] = null;
+					}
+					nextBlocks[oldParentId] = oldParent;
 				}
-				nextBlocks[oldParentId] = oldParent;
 			}
 
 			// --- STEP 2: ADD TO NEW LOCATION ---
@@ -176,7 +227,11 @@ export default function GlobalStateProvider({
 
 			nextBlocks[sourceId] = movingBlock;
 
-			return { blocks: nextBlocks, rootBlocks: nextRoot };
+			return {
+				blocks: nextBlocks,
+				rootBlocks: nextRoot,
+				templates: prev.templates,
+			};
 		});
 	};
 

@@ -6,7 +6,7 @@ export const createBlockFromAST = (type: string, prefix: string = "", parentId: 
         throw new Error(`Unknown block type: ${type}`);
     }
     return {
-        id: `${prefix}:${crypto.randomUUID()}`,
+        id: `${prefix && `${prefix}:`}${crypto.randomUUID()}`,
         type,
         parentId,
         ...ast.slots.reduce((acc, slot) => {
