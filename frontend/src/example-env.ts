@@ -1,13 +1,13 @@
 import type { Environment } from "./data-model";
 
 export const example_env: Environment = {
-    "intEnv": {"x": 5,"y":7},
+    "intEnv": {"x": 5,"y":71},
     "boolEnv":{"maybe":false},
-    "arrEnv":{"list":[1,2,3,4,5]},
+    "arrEnv":{},
     "parentEnv": {
         "intEnv": {},
         "boolEnv":{},
-        "arrEnv":{"list":[]},
+        "arrEnv":{"list":[1,2,3,4,5]},
         "parentEnv":null
     }
 }
