@@ -145,7 +145,7 @@ export default function GlobalStateProvider({
 					if (isArraySlot) {
 						newParent[targetSlot] = [
 							...(newParent[targetSlot] || []),
-							sourceId,
+							newBlock.id,
 						];
 					} else {
 						// SWAPPING LOGIC: If a single-item slot (like 'cond') is full, kick the old block to root
@@ -157,7 +157,7 @@ export default function GlobalStateProvider({
 							};
 							nextRoot.push(displacedId);
 						}
-						newParent[targetSlot] = sourceId;
+						newParent[targetSlot] = newBlock.id;
 					}
 					nextBlocks[targetBlockId] = newParent;
 				}
