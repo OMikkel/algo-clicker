@@ -1,7 +1,9 @@
 
 const drawAlgo = {
     drawHeadAndBody: (xPos: number, yPos: number, ctx: CanvasRenderingContext2D) => {
-        drawBody(xPos, yPos + 150, 50, 70, 20, ctx);
+        const perspective: number = 0.3;
+        drawBody(xPos, yPos + 170, 50, 90, perspective, ctx);
+        drawNeck(xPos, yPos + 80, 20, 90, perspective, ctx);
         drawHead(xPos, yPos, 60, ctx);
     },
     drawArmsAndHands: (algoXPos: number, algoYPos: number, lArmXPos: number, lArmYPos: number, rArmXPos: number, rArmYPos: number, ctx: CanvasRenderingContext2D) => {
@@ -16,29 +18,30 @@ const drawAlgo = {
 
 
 function drawHead(xPos: number, yPos: number, size: number, ctx: CanvasRenderingContext2D) {
-    ctx.fillStyle = "gray";
-    ctx.beginPath();
-    drawCircle(xPos, yPos, size, ctx);
-    ctx.fill();
+    drawCircle(xPos, yPos, size, "rgb(65, 179, 255)", ctx);
 
-    drawEye(xPos+size*0.4, yPos, size * 0.3, ctx);
-    drawEye(xPos-size*0.4, yPos, size * 0.3, ctx);
+    drawEye(xPos+size*0.4, yPos + size * 0.1, size * 0.3, ctx);
+    drawEye(xPos-size*0.4, yPos + size * 0.1, size * 0.3, ctx);
+
+    drawCylinder(xPos, yPos - size * 0.9, size * 0.03, size * 0.6, 0.3, "rgb(0, 153, 255)", "black", ctx)
+    drawCircle(xPos, yPos - size * 1.5, size*0.1, "rgb(65, 179, 255)", ctx);
 }
 
 function drawEye(xPos: number, yPos: number, size: number, ctx: CanvasRenderingContext2D) {
-    ctx.fillStyle = "white";
-    ctx.beginPath();
-    drawCircle(xPos, yPos, size, ctx);
-    ctx.fill();
+    drawCircle(xPos, yPos, size, "white", ctx);
 
-    ctx.fillStyle = "black";
-    ctx.beginPath();
-    drawCircle(xPos, yPos + size * 0.4, size / 2, ctx);
-    ctx.fill();
+
+    drawPupil(xPos, yPos + size * 0.4, size / 2, ctx);
 }
 
+function drawPupil(xPos: number, yPos: number, size: number, ctx: CanvasRenderingContext2D) {
+    drawCircle(xPos, yPos, size, "black", ctx);
+    drawCircle(xPos + size*0.4, yPos - size*0.4, size*0.3, "white", ctx);
+}
+
+
 function drawArm(fromX: number, fromY: number, fromDirection: number, toX: number, toY: number, toDirection: number, thickness: number, ctx: CanvasRenderingContext2D) {
-    ctx.strokeStyle = "lightGray";
+    ctx.strokeStyle = "rgb(144, 211, 255)";
     ctx.lineWidth = thickness;
 
     const distance = Math.hypot(toX - fromX, toY - fromY);
@@ -56,8 +59,11 @@ function drawArm(fromX: number, fromY: number, fromDirection: number, toX: numbe
     ctx.stroke();
 }
 
-function drawCircle(xPos: number, yPos: number, size: number, ctx: CanvasRenderingContext2D) {
+function drawCircle(xPos: number, yPos: number, size: number, color: string, ctx: CanvasRenderingContext2D) {
+    ctx.fillStyle = color;
+    ctx.beginPath();
     ctx.arc(xPos, yPos, size, 0, size * Math.PI);
+    ctx.fill();
 }
 
 function drawHand(xPos: number, yPos: number, size: number, ctx: CanvasRenderingContext2D) {
@@ -80,7 +86,7 @@ function drawHand(xPos: number, yPos: number, size: number, ctx: CanvasRendering
     const tipWidth = thickness;
     const tipHeight = thickness;
 
-    ctx.fillStyle = "white";
+    ctx.fillStyle = "rgb(255, 255, 255)";
 
     ctx.fillRect(-radius - tipWidth / 2, tipHeight - size*0.25, tipWidth, tipHeight);
     ctx.fillRect(radius - tipWidth / 2, tipHeight - size*0.25, tipWidth, tipHeight);
@@ -88,11 +94,19 @@ function drawHand(xPos: number, yPos: number, size: number, ctx: CanvasRendering
     ctx.restore();
 }
 
-function drawBody(xPos: number, yPos: number, width: number, height: number, circleHeight: number, ctx: CanvasRenderingContext2D) {
+function drawBody(xPos: number, yPos: number, width: number, height: number, perspective: number, ctx: CanvasRenderingContext2D) {
+    drawCylinder(xPos, yPos, width, height, perspective, "rgb(65, 179, 255)", "rgb(144, 211, 255)", ctx);
+}
+
+function drawNeck(xPos: number, yPos: number, width: number, height: number, perspective: number, ctx: CanvasRenderingContext2D) {
+    drawCylinder(xPos, yPos, width, height, perspective, "rgb(0, 153, 255)", "lightgray", ctx);
+}
+
+function drawCylinder(xPos: number, yPos: number, width: number, height: number, perspective: number, sideColor: string, topColor: string, ctx: CanvasRenderingContext2D) {
     // Bottom
-    ctx.fillStyle = "gray";
+    ctx.fillStyle = sideColor;
     ctx.beginPath();
-    ctx.ellipse(xPos, yPos, width, circleHeight/2, 0, 0, 2 * Math.PI);
+    ctx.ellipse(xPos, yPos, width, width * perspective, 0, 0, 2 * Math.PI);
     ctx.fill();
 
     // Middle
@@ -101,9 +115,9 @@ function drawBody(xPos: number, yPos: number, width: number, height: number, cir
     ctx.fill();
 
     // Top
-    ctx.fillStyle = "lightgray";
+    ctx.fillStyle = topColor;
     ctx.beginPath();
-    ctx.ellipse(xPos, yPos - height, width, circleHeight / 2, 0, 0, 2 * Math.PI);
+    ctx.ellipse(xPos, yPos - height, width, width * perspective, 0, 0, 2 * Math.PI);
     ctx.fill();
 }
 
