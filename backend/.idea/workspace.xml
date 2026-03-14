@@ -5,19 +5,12 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="d6551a71-1d6c-4ad5-8b4c-7dd6ae6b9431" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/.idea/copilot.data.migration.ask2agent.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/algo_backend/AstBlockStateParser.scala" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/tests_frontend_json.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/backend_frontend_test_client.html" beforeDir="false" afterPath="$PROJECT_DIR$/backend_frontend_test_client.html" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/out/production/backend/algo_backend/WebClient.html" beforeDir="false" afterPath="$PROJECT_DIR$/out/production/backend/algo_backend/WebClient.html" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/server_instructions.md" beforeDir="false" afterPath="$PROJECT_DIR$/server_instructions.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/algo_backend/Ast.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/algo_backend/Ast.scala" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/algo_backend/Interpreter.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/algo_backend/Interpreter.scala" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/algo_backend/JSONServer.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/algo_backend/JSONServer.scala" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/algo_backend/TestAstTextParser.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/algo_backend/TestAstTextParser.scala" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/algo_backend/TestInterpreter.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/algo_backend/TestInterpreter.scala" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/algo_backend/WebClient.html" beforeDir="false" afterPath="$PROJECT_DIR$/src/algo_backend/WebClient.html" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -66,7 +59,7 @@
     "ts.external.directory.path": "C:\\Program Files\\JetBrains\\IntelliJ IDEA 2025.3.2\\plugins\\javascript-plugin\\jsLanguageServicesImpl\\external"
   }
 }]]></component>
-  <component name="RunManager" selected="Application.TestInterpreter">
+  <component name="RunManager" selected="Application.JSONServer">
     <configuration name="JSONServer" type="Application" factoryName="Application" temporary="true">
       <option name="MAIN_CLASS_NAME" value="algo_backend.JSONServer" />
       <module name="backend" />
@@ -83,8 +76,8 @@
     </configuration>
     <recent_temporary>
       <list>
-        <item itemvalue="Application.TestInterpreter" />
         <item itemvalue="Application.JSONServer" />
+        <item itemvalue="Application.TestInterpreter" />
       </list>
     </recent_temporary>
   </component>

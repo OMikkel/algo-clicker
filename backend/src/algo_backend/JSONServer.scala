@@ -13,6 +13,7 @@ object JSONServer {
   case class Connect(clientId: String) extends ClientMessage
   case class Ping(timestampMs: Long) extends ClientMessage
   case class Command(action: String, payload: Map[String, Any]) extends ClientMessage
+  case class Continue() extends ClientMessage
 
   sealed trait ServerMessage
   case class Connected(sessionId: String) extends ServerMessage
@@ -20,6 +21,7 @@ object JSONServer {
   case class Ack(action: String) extends ServerMessage
   case class Parsed(kind: String, value: String) extends ServerMessage
   case class Ran(kind: String, value: String, intEnv: Map[String, Int], boolEnv: Map[String, Boolean], arrEnv: Map[String, List[Int]]) extends ServerMessage
+  case class Trace(event: String, data: Map[String, Any], intEnv: Map[String, Int], boolEnv: Map[String, Boolean], arrEnv: Map[String, List[Int]]) extends ServerMessage
   case class Error(message: String) extends ServerMessage
 
   final case class ServerHandle(stop: () => Unit)
@@ -63,6 +65,8 @@ object JSONServer {
 		  stringField(map, "clientId").map(Connect.apply)
 		case Some("ping") =>
 		  longField(map, "timestampMs").map(Ping.apply)
+		case Some("continue") =>
+		  Right(Continue())
 		case Some("command") =>
 		  for {
 			action <- stringField(map, "action")
@@ -93,6 +97,9 @@ object JSONServer {
 		  "boolEnv" -> boolEnv,
 		  "arrEnv" -> arrEnv
 		)
+	  case Trace(event, data, intEnv, boolEnv, arrEnv) =>
+		(Map[String, Any]("type" -> "trace", "event" -> event) ++ data) +
+		  ("intEnv" -> intEnv) + ("boolEnv" -> boolEnv) + ("arrEnv" -> arrEnv)
 	  case Error(message) => Map("type" -> "error", "message" -> message)
 	}
 	stringifyJson(map)
@@ -130,7 +137,8 @@ object JSONServer {
 			writeFrame(out, OpPong, payload)
 		  case Some((OpText, payload)) =>
 			val incomingJson = new String(payload, StandardCharsets.UTF_8)
-			val response = decodeClientMessage(incomingJson) match {
+			val response: ServerMessage = decodeClientMessage(incomingJson) match {
+			  case Right(Command("run", cmdPayload)) => executeWithTracing(cmdPayload, in, out)
 			  case Right(msg) => route(msg)
 			  case Left(err) => Error(err)
 			}
@@ -147,18 +155,124 @@ object JSONServer {
   }
 
   private def route(message: ClientMessage): ServerMessage = message match {
-	case Connect(_) => Connected(UUID.randomUUID().toString)
-	case Ping(timestampMs) => Pong(timestampMs)
-	case Command(action, payload) =>
-	  action match {
-		case "parseAst" =>
-		  parseAstPayload(payload).fold(err => Error(err), parsed => Parsed(parsed.kind, parsed.value.toString))
-		case "run" =>
-		  parseAstPayload(payload)
-			.flatMap(executeParsedAst)
-			.fold(err => Error(err), result => result)
-		case _ => Ack(action)
-	  }
+    case Connect(_) => Connected(UUID.randomUUID().toString)
+    case Ping(timestampMs) => Pong(timestampMs)
+    case Continue() => Ack("continue")
+    case Command(action, payload) =>
+      action match {
+        case "parseAst" =>
+          parseAstPayload(payload).fold(err => Error(err), parsed => Parsed(parsed.kind, parsed.value.toString))
+        case _ => Ack(action)
+      }
+  }
+
+  // Runs the interpreter with a trace handler that sends Trace frames over the socket
+  // and blocks on each trace until the frontend replies {"type":"continue"}.
+  private def executeWithTracing(payload: Map[String, Any], in: BufferedInputStream, out: BufferedOutputStream): ServerMessage = {
+    val traceHandler: (Ast.TraceType, Option[String], Ast.Env) => Unit = { (traceEvent, _astId, env) =>
+      val traceMsg = buildTraceMessage(traceEvent, env)
+      writeFrame(out, OpText, encodeServerMessage(traceMsg).getBytes(StandardCharsets.UTF_8))
+
+      // Block this interpreter thread until the frontend sends {"type":"continue"}
+      var waiting = true
+      while (waiting) {
+        readFrame(in) match {
+          case None => waiting = false
+          case Some((OpClose, _)) => waiting = false
+          case Some((OpText, bytes)) =>
+            val raw = new String(bytes, StandardCharsets.UTF_8)
+            parseJsonObject(raw).toOption.flatMap(_.get("type")) match {
+              case Some("continue") => waiting = false
+              case _ => () // ignore other messages while paused
+            }
+          case _ => ()
+        }
+      }
+    }
+
+    val env = parseInitialEnv(payload)
+    parseAstPayload(payload)
+      .flatMap { parsed =>
+        Interpreter.withTraceHandler(traceHandler)(executeParsedAst(parsed, env))
+      }
+      .fold(err => Error(err), identity)
+  }
+
+  private def buildTraceMessage(t: Ast.TraceType, env: Ast.Env): Trace = {
+    import Ast.*
+    val (event, data) = t match {
+      case TraceArrAssign_A(value, arr) =>
+        ("ArrayAssign", Map[String, Any]("arr" -> arr, "value" -> value))
+      case TraceArrSwap(index1, index2, arr) =>
+        ("ArraySwap", Map[String, Any]("arr" -> arr, "index1" -> index1, "index2" -> index2))
+      case TraceArrayInsert(index, value, arr) =>
+        ("ArrayInsert", Map[String, Any]("arr" -> arr, "index" -> index, "value" -> value))
+      case TraceArrayRemove(index, arr) =>
+        ("ArrayRemove", Map[String, Any]("arr" -> arr, "index" -> index))
+      case _ =>
+        ("Unknown", Map.empty[String, Any])
+    }
+	Trace(event, data, flattenIntEnv(env), flattenBoolEnv(env), flattenArrEnv(env))
+  }
+
+  // Trace callbacks can run inside nested scope envs. Flatten the env chain so
+  // frontend snapshots include variables from parent scopes (e.g., initial array A).
+  private def flattenIntEnv(env: Ast.Env): Map[String, Int] =
+	env.parent_env match {
+	  case Some(parent) => flattenIntEnv(parent) ++ env.intEnv
+	  case None => env.intEnv
+	}
+
+  private def flattenBoolEnv(env: Ast.Env): Map[String, Boolean] =
+	env.parent_env match {
+	  case Some(parent) => flattenBoolEnv(parent) ++ env.boolEnv
+	  case None => env.boolEnv
+	}
+
+  private def flattenArrEnv(env: Ast.Env): Map[String, List[Int]] =
+	env.parent_env match {
+	  case Some(parent) => flattenArrEnv(parent) ++ env.arrEnv
+	  case None => env.arrEnv
+	}
+
+  // Reads optional initialState from the run payload and seeds the Env accordingly.
+  private def parseInitialEnv(payload: Map[String, Any]): Ast.Env = {
+    val state: Map[String, Any] = payload.get("initialState") match {
+      case Some(m: Map[_, _]) => m.asInstanceOf[Map[String, Any]]
+      case _ => Map.empty
+    }
+
+    def toInt(v: Any): Option[Int] = v match {
+      case n: Long   => Some(n.toInt)
+      case n: Int    => Some(n)
+      case n: Double if n.isWhole => Some(n.toInt)
+      case _ => None
+    }
+
+    val intEnv: Map[String, Int] = state.get("intEnv") match {
+      case Some(m: Map[_, _]) =>
+        m.asInstanceOf[Map[String, Any]].flatMap { case (k, v) => toInt(v).map(k -> _) }
+      case _ => Map.empty
+    }
+
+    val boolEnv: Map[String, Boolean] = state.get("boolEnv") match {
+      case Some(m: Map[_, _]) =>
+        m.asInstanceOf[Map[String, Any]].collect { case (k, v: Boolean) => k -> v }
+      case _ => Map.empty
+    }
+
+    val arrEnv: Map[String, List[Int]] = state.get("arrEnv") match {
+      case Some(m: Map[_, _]) =>
+        m.asInstanceOf[Map[String, Any]].flatMap {
+          case (k, vs: List[_]) =>
+            val ints = vs.flatMap(toInt)
+            if (ints.length == vs.length) Some(k -> ints) else None
+          case _ => None
+        }
+      case _ => Map.empty
+    }
+
+    Ast.Env(intEnv, boolEnv, arrEnv, None)
   }
 
   private def parseAstPayload(payload: Map[String, Any]): Either[String, AstTextParser.ParsedAst] = {
@@ -170,8 +284,7 @@ object JSONServer {
 	}
   }
 
-  private def executeParsedAst(parsed: AstTextParser.ParsedAst): Either[String, ServerMessage] = {
-	val env = Ast.Env(Map.empty, Map.empty, Map.empty, None)
+  private def executeParsedAst(parsed: AstTextParser.ParsedAst, env: Ast.Env): Either[String, ServerMessage] = {
 	try {
 	  val valueText = parsed.value match {
 		case v: Ast.IntType => Interpreter.eval(v, env).toString

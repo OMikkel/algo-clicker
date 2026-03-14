@@ -100,6 +100,7 @@ Rules:
 #### `command` action: `run`
 
 Runs the parsed AST in `Interpreter` and returns the runtime value plus resulting environment maps.
+Trace events are sent mid-execution; execution is paused until the client replies `{"type":"continue"}`.
 
 ```json
 {
@@ -107,15 +108,20 @@ Runs the parsed AST in `Interpreter` and returns the runtime value plus resultin
   "action": "run",
   "payload": {
     "kind": "auto",
-    "blocks": {
-      "intplus-block": { "type": "IntPlus", "id": "intplus-block", "parentId": "root", "v1": "int-left", "v2": "int-right" },
-      "int-left": { "type": "IntLit", "id": "int-left", "parentId": "intplus-block", "v": 5 },
-      "int-right": { "type": "IntLit", "id": "int-right", "parentId": "intplus-block", "v": 10 }
-    },
-    "rootBlocks": ["intplus-block"]
+    "blocks": { ... },
+    "rootBlocks": ["intplus-block"],
+    "initialState": {
+      "intEnv": {},
+      "boolEnv": {},
+      "arrEnv": { "A": [10, 20, 30] }
+    }
   }
 }
 ```
+
+Rules:
+- `payload.initialState` is optional. When provided, pre-seeds the interpreter `Env`.
+- `initialState.intEnv`, `boolEnv`, `arrEnv` are all optional sub-objects.
 
 ## Server -> Client Messages
 
@@ -194,6 +200,41 @@ Sent when parsing or validation fails, including:
 ```
 
 Sent after a successful `command` with `action = "run"`.
+
+### 7) Trace
+
+```json
+{
+  "type": "trace",
+  "event": "ArrayInsert",
+  "arr": "A",
+  "index": 1,
+  "value": 42,
+  "intEnv": {},
+  "boolEnv": {},
+  "arrEnv": { "A": [10, 42, 20, 30] }
+}
+```
+
+Sent mid-execution whenever a traced array mutation occurs.
+The interpreter is **paused** after sending this; execution resumes only after the client replies with `{"type":"continue"}`.
+
+Possible `event` values:
+- `ArrayInsert` — fields: `arr`, `index`, `value`
+- `ArrayRemove` — fields: `arr`, `index`
+- `ArraySwap`   — fields: `arr`, `index1`, `index2`
+- `ArrayAssign` — fields: `arr`, `value`
+
+## Client → Server (additional)
+
+### 4) Continue
+
+```json
+{ "type": "continue" }
+```
+
+Sent by the client to resume interpreter execution after receiving a `trace` message.
+Must only be sent while paused (after a `trace`, before the corresponding `ran` arrives).
 
 ## WebSocket Control Behavior
 

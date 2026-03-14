@@ -163,62 +163,60 @@ object Interpreter {
 
   def setInt(id: Id, value: Int, env: Env): Unit = {
     var env1: Option[Env] = Some(env)
-    var existing: Option[Int] = None
     var running = true
     while (running) {
       env1 match {
         case Some(env2) =>
-          existing = env2.intEnv.get(id)
-          existing match {
-            case Some(n) =>
+          env2.intEnv.get(id) match {
+            case Some(_) =>
               env2.intEnv = env2.intEnv.updated(id, value)
               running = false
             case None => env1 = env2.parent_env
           }
-        case None => running = false
+        case None =>
+          // Variable not declared anywhere yet — create it in the immediate env
+          env.intEnv = env.intEnv + (id -> value)
+          running = false
       }
     }
-    env.intEnv = env.intEnv + (id -> value)
   }
 
   def setBool(id: Id, value: Boolean, env: Env): Unit = {
     var env1: Option[Env] = Some(env)
-    var existing: Option[Boolean] = None
     var running = true
     while (running) {
       env1 match {
         case Some(env2) =>
-          existing = env2.boolEnv.get(id)
-          existing match {
-            case Some(n) =>
+          env2.boolEnv.get(id) match {
+            case Some(_) =>
               env2.boolEnv = env2.boolEnv.updated(id, value)
               running = false
             case None => env1 = env2.parent_env
           }
-        case None => running = false
+        case None =>
+          env.boolEnv = env.boolEnv + (id -> value)
+          running = false
       }
     }
-    env.boolEnv = env.boolEnv + (id -> value)
   }
 
   def setArr(id: Id, value: List[Int], env: Env): Unit = {
     var env1: Option[Env] = Some(env)
-    var existing: Option[List[Int]] = None
     var running = true
     while (running) {
       env1 match {
         case Some(env2) =>
-          existing = env2.arrEnv.get(id)
-          existing match {
-            case Some(n) =>
+          env2.arrEnv.get(id) match {
+            case Some(_) =>
               env2.arrEnv = env2.arrEnv.updated(id, value)
               running = false
             case None => env1 = env2.parent_env
           }
-        case None => running = false
+        case None =>
+          env.arrEnv = env.arrEnv + (id -> value)
+          running = false
       }
     }
-    env.arrEnv = env.arrEnv + (id -> value)
   }
 
   def getId(idExp: IntVar): Id = {
@@ -250,22 +248,42 @@ object Interpreter {
 
 
 
+  // Thread-local trace handler injected by the WebSocket server during a `run` command.
+  // When set, trace() calls the handler (which sends JSON to the frontend and blocks for "continue").
+  // When not set, trace() falls back to println.
+  private val activeTraceHandler: ThreadLocal[Option[(TraceType, Option[String], Env) => Unit]] =
+    new ThreadLocal[Option[(TraceType, Option[String], Env) => Unit]] {
+      override def initialValue(): Option[(TraceType, Option[String], Env) => Unit] = None
+    }
+
+  /** Install a trace handler for the duration of [block], then restore the previous one. */
+  def withTraceHandler[A](handler: (TraceType, Option[String], Env) => Unit)(block: => A): A = {
+    val prev = activeTraceHandler.get()
+    activeTraceHandler.set(Some(handler))
+    try block
+    finally activeTraceHandler.set(prev)
+  }
+
   /**
-    * Sends message to frontend.
+    * Sends message to frontend (or prints to stdout when no handler is installed).
     */
-  def trace(trace: => TraceType, astId: Option[String], env: Env): Unit = {
-      trace match {
-        case TraceArrAssign_A(value, id) =>
-          println(s"Trace: Assigned array $id to value $value")
-        case TraceArrSwap(index1, index2, arrId) =>
-          println(s"Trace: Array $arrId swapped indices $index1 and $index2")
-        case TraceArrayInsert(index, value, arrId) =>
-          println(s"Trace: Array $arrId inserted value $value at index $index")
-        case TraceArrayRemove(index, arrId) =>
-          println(s"Trace: Array $arrId removed value at index $index")
-        case _ =>
-          println(s"Trace: Unrecognized trace type")
-      }
+  def trace(t: => TraceType, astId: Option[String], env: Env): Unit = {
+    activeTraceHandler.get() match {
+      case Some(handler) => handler(t, astId, env)
+      case None =>
+        t match {
+          case TraceArrAssign_A(value, id) =>
+            println(s"Trace: Assigned array $id to value $value")
+          case TraceArrSwap(index1, index2, arrId) =>
+            println(s"Trace: Array $arrId swapped indices $index1 and $index2")
+          case TraceArrayInsert(index, value, arrId) =>
+            println(s"Trace: Array $arrId inserted value $value at index $index")
+          case TraceArrayRemove(index, arrId) =>
+            println(s"Trace: Array $arrId removed value at index $index")
+          case _ =>
+            println(s"Trace: Unrecognized trace type")
+        }
+    }
   }
 
   /**
