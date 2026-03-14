@@ -4,12 +4,13 @@ import Interpreter.*
 import Ast.{IntType, *}
 
 object TestInterpreter {
-  val boolEnvOn_a: Env = Env(Map(), Map("a" -> true), Map(), None)
-  val boolEnvInEnvOn_a: Env = Env(Map(),Map(),Map(), Some(Env(Map(), Map("a" -> true), Map(), None)))
-  val intEnvOn_a: Env = Env(Map("a" -> 5), Map(), Map(), None)
-  val intEnvInEnvOn_a: Env = Env(Map(),Map(),Map(), Some(Env(Map("a" -> 5), Map(), Map(), None)))
-  val listEnvOn_A: Env = Env(Map(), Map(), Map("A" -> List(5,8,1)), None)
-  val listEnvInEnvOn_A: Env = Env(Map(),Map(),Map(), Some(Env(Map(), Map(), Map("A" -> List(5,8,1)), None)))
+  // Use fresh env instances per test reference because Env is mutable.
+  def boolEnvOn_a: Env = Env(Map(), Map("a" -> true), Map(), None)
+  def boolEnvInEnvOn_a: Env = Env(Map(),Map(),Map(), Some(Env(Map(), Map("a" -> true), Map(), None)))
+  def intEnvOn_a: Env = Env(Map("a" -> 5), Map(), Map(), None)
+  def intEnvInEnvOn_a: Env = Env(Map(),Map(),Map(), Some(Env(Map("a" -> 5), Map(), Map(), None)))
+  def listEnvOn_A: Env = Env(Map(), Map(), Map("A" -> List(5,8,1)), None)
+  def listEnvInEnvOn_A: Env = Env(Map(),Map(),Map(), Some(Env(Map(), Map(), Map("A" -> List(5,8,1)), None)))
 
 
   def main(args: Array[String]): Unit = {
@@ -67,15 +68,51 @@ object TestInterpreter {
     assert(lookupBool("a", env) == false)
 
     // If statement
-
+    env = intEnvOn_a
+    test(If(BoolLit(true), Scope(List(IntAssign(IntVarLit("a"), IntLit(1)))), Scope(List(IntAssign(IntVarLit("a"), IntLit(0))))), env)
+    assert(lookupInt("a", env) == 1)
+    env = intEnvOn_a
+    test(If(BoolLit(false), Scope(List(IntAssign(IntVarLit("a"), IntLit(1)))), Scope(List(IntAssign(IntVarLit("a"), IntLit(0))))), env)
+    assert(lookupInt("a", env) == 0)
 
     // While loop
+    env = intEnvOn_a // a = 5
+    test(While(BoolLess(IntVarLit("a"), IntLit(10)), Scope(List(IntAssign(IntVarLit("a"), IntPlus(IntVarLit("a"), IntLit(1)))))), env)
+    assert(lookupInt("a", env) == 10)
 
     // Swap statement
+    env = Env(Map("a" -> 3, "b" -> 7), Map(), Map(), None)
+    test(Swap(IntVarLit("a"), IntVarLit("b")), env)
+    assert(lookupInt("a", env) == 7)
+    assert(lookupInt("b", env) == 3)
 
-    // 
+    env = Env(Map("a" -> 9), Map(), Map("A" -> List(1,2,3)), None)
+    test(Swap(IntVarLit("a"), IntVarListLookup("A", IntLit(1))), env)
+    assert(lookupInt("a", env) == 2)
+    assert(lookupArr("A", env) == List(1,9,3))
 
-    // Block tests
+    env = listEnvOn_A // ArrayVar("A"), List(5,8,1)
+    test(Swap(IntVarListLookup("A", IntLit(0)), IntVarListLookup("A", IntLit(1))), env)
+    assert(lookupArr("A", env) == List(8,5,1))
+
+    // Array Insert
+    env = listEnvOn_A // ArrayVar("A"), List(5,8,1)
+    test(ArrayInsert(ArrayVar("A"), IntLit(10), IntLit(1)), env)
+    assert(lookupArr("A", env) == List(5,10,8,1))
+
+    env = listEnvOn_A // ArrayVar("A"), List(5,8,1)
+    test(ArrayInsert(ArrayVar("A"), IntLit(99), IntLit(3)), env)
+    assert(lookupArr("A", env) == List(5, 8, 1, 99))
+
+    // Array Remove
+    env = listEnvOn_A // ArrayVar("A"), List(5,8,1)
+    test(ArrayRemove(ArrayVar("A"), IntLit(1)), env)
+    assert(lookupArr("A", env) == List(5,1))
+
+
+    // Scope/Block tests
+    test(Scope(List(IntAssign(IntVarLit("a"), IntLit(2)))))
+    // NOTE: Implicitly tested in statement tests <3
 
 
 

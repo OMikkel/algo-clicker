@@ -7,6 +7,8 @@ import Ast.*
   */
 object Interpreter {
 
+
+
   def eval(v: IntType, env: Env): Int = v match {
     case IntLit(v: Int) => v
     case IntVarLit(id: Id) => lookupInt(id, env)
@@ -49,14 +51,49 @@ object Interpreter {
   def eval(s: Statement, env: Env): Unit = s match {
     case IntAssign(variable, value) => setInt(getId(variable), eval(value, env), env)
     case BoolAssign(variable, value) => setBool(variable.id, eval(value, env), env)
-    case If(cond, thenBlock, elseBlock) => ???
-    case While(cond, body) => ???
-    case Swap(a, b) => ???
-    case ArrayInsert(arr, value, index) => ???
-    case ArrayRemove(arr, index) => ???
+    case If(cond, thenBlock, elseBlock) => if (eval(cond, env)) eval(thenBlock, env) else eval(elseBlock, env)
+    case While(cond, body) => while (eval(cond, env)) eval(body, env)
+    case Swap(a, b) =>
+      // Capture both references and values before writing, so swap behavior is stable.
+      val aRef = resolveIntRef(a, env)
+      val bRef = resolveIntRef(b, env)
+      val aValue = aRef.read()
+      val bValue = bRef.read()
+      aRef.write(bValue)
+      bRef.write(aValue)
+    case ArrayInsert(arr, value, index) =>
+      arr match {
+        case ArrayVar(id) =>
+          val arrValue = lookupArr(id, env)
+          val indexValue = eval(index, env)
+          if (indexValue < 0 || indexValue > arrValue.length) {
+            throw InterpreterError(s"ArrayInsert index out of range: $indexValue")
+          }
+          setArr(id, arrValue.patch(indexValue, Seq(eval(value, env)), 0), env)
+        case _ =>
+          throw InterpreterError("ArrayInsert target must be an array variable")
+      }
+    case ArrayRemove(arr, index) =>
+      arr match {
+        case ArrayVar(id) =>
+          val arrValue = lookupArr(id, env)
+          val indexValue = eval(index, env)
+          if (indexValue < 0 || indexValue >= arrValue.length) {
+            throw InterpreterError(s"ArrayRemove index out of range: $indexValue")
+          }
+          setArr(id, arrValue.patch(indexValue, Seq(), 1), env)
+        case _ =>
+          throw InterpreterError("ArrayRemove target must be an array variable")
+      }
   }
 
-  def eval(s: Scope, env: Env): Unit = ???
+  def eval(s: Scope, env: Env): Unit = {
+    var env1 = Env(Map(), Map(), Map(), Some(env))
+    for (statement <- s.statements) {
+      eval(statement, env1)
+    }
+    // env is automatically the one the program knows about in the end
+  }
 
 
   def lookupInt(id: Id, env: Env): Int = {
@@ -181,6 +218,25 @@ object Interpreter {
     }
   }
 
+  private def resolveIntRef(v: IntVar, env: Env): IntRef = v match {
+    case IntVarLit(id) =>
+      IntRef(
+        () => lookupInt(id, env),
+        value => setInt(id, value, env)
+      )
+    case IntVarListLookup(id, indexExp) =>
+      val index = eval(indexExp, env)
+      IntRef(
+        () => {
+          val arr = lookupArr(id, env)
+          arr(index)
+        },
+        value => {
+          val arr = lookupArr(id, env)
+          setArr(id, arr.updated(index, value), env)
+        }
+      )
+  }
 
 
 

@@ -78,13 +78,14 @@ object Ast {
 
   //case class For(varDecl: IntAssign, cond: Bool, update: IntAssign, body: Block)
   //case class ForEach(ArrayType)
-  case class Swap(a: IntVar, b: IntVar) extends Statement
+  case class Swap(var a: IntVar, var b: IntVar) extends Statement
 
   case class ArrayInsert(arr: ArrayType, value: IntType, index: IntType) extends Statement
   case class ArrayRemove(arr: ArrayType, index: IntType) extends Statement
 
+  case class Scope(statements: List[Statement])
 
-  class Scope(statements: List[Statement], env: Env)
+  case class IntRef(read: () => Int, write: Int => Unit)
 
 
   class Env(var intEnv: Map[Id, Int], var boolEnv: Map[Id, Boolean], var arrEnv: Map[Id, List[Int]], val parent_env: Option[Env]) {
