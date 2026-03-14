@@ -1,6 +1,11 @@
 import React, { useRef, useEffect } from "react";
 
-const CanvasExample: React.FC = () => {
+interface VisualizationProps {
+  width: number;
+  height: number;
+}
+
+function Visualization({width, height}: VisualizationProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   useEffect(() => {
@@ -10,12 +15,19 @@ const CanvasExample: React.FC = () => {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    // Draw a rectangle
-    ctx.fillStyle = "blue";
-    ctx.fillRect(50, 50, 150, 100);
+    ctx.strokeStyle = "black";
+    ctx.fillStyle = "gray";
+    
+    ctx.beginPath();
+    ctx.arc(95, 50, 40, 0, 40 * Math.PI);
+    
+    ctx.fill();
+    ctx.lineWidth = 4;
+    
+    ctx.stroke();
   }, []);
 
-  return <canvas ref={canvasRef} width={400} height={300} />;
+  return <canvas ref={canvasRef} width={width} height={height} />;
 };
 
-export default CanvasExample;
+export default Visualization;
