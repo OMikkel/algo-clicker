@@ -8,6 +8,7 @@ export const testSampleIfs: BlockState = {
         "bool-lit-uuid2": { type: "BoolLit", id: "bool-lit-uuid2", parentId: "if-block-uuid2", b: false },
     },
     rootBlocks: ["if-block-uuid1", "if-block-uuid2"],
+    templates: []
 }
 
 export const testSampleInts: BlockState = {
@@ -15,6 +16,7 @@ export const testSampleInts: BlockState = {
         "int-block": { type: "IntLit", id: "int-block", parentId: "root", v: 42 },
     },
     rootBlocks: ["int-block"],
+    templates: []
 }
 
 export const testIntsAndIfs: BlockState = {
@@ -24,4 +26,5 @@ export const testIntsAndIfs: BlockState = {
         "int-right": { type: "IntLit", id: "int-right", parentId: "intplus-block", v: 10 },
     },
     rootBlocks: ["intplus-block"],
+    templates: []
 }

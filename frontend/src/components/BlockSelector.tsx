@@ -1,16 +1,10 @@
 import { useGlobalStateContext } from "../context/GlobalStateContext";
-import type { Block, BlockId } from "../types/blocks";
+import type { BlockId } from "../types/blocks";
 import BaseBlock from "./Blocks/BaseBlock";
 
-export default function BlockSelector({
-	id,
-	block,
-}: {
-	id?: BlockId;
-	block?: Block;
-}) {
+export default function BlockSelector({ id }: { id: BlockId }) {
 	const { blocks } = useGlobalStateContext();
-	const selectedBlock = block ? block : id ? blocks[id] : null;
+	const selectedBlock = blocks[id];
 	console.log("BlockSelector found block:", selectedBlock);
 
 	return <BaseBlock block={selectedBlock} />;
