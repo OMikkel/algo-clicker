@@ -1,11 +1,12 @@
 import BlockSelector from "./components/BlockSelector";
 import { BLOCK_REGISTRY } from "./constants/AstConditions";
+import type { Block } from "./types/blocks";
 import { createBlockFromAST } from "./utils/objects";
 
 type Props = {};
 
 export default function Toolbar({}: Props) {
-	const ASTs = Object.keys(BLOCK_REGISTRY).map((key) =>
+	const ASTs: Block[] = Object.keys(BLOCK_REGISTRY).map((key) =>
 		createBlockFromAST(key, ""),
 	);
 

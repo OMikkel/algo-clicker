@@ -9,7 +9,7 @@ function App() {
 	return (
 		<GlobalStateProvider>
 			<div className="flex flex-row gap-3 p-3">
-				<Tooplbar />
+				<Toolbar />
 				<BlockCanvas />
 				<VisualizationFrame />
 			</div>
