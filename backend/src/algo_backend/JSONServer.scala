@@ -19,6 +19,7 @@ object JSONServer {
   case class Pong(timestampMs: Long) extends ServerMessage
   case class Ack(action: String) extends ServerMessage
   case class Parsed(kind: String, value: String) extends ServerMessage
+  case class Ran(kind: String, value: String, intEnv: Map[String, Int], boolEnv: Map[String, Boolean], arrEnv: Map[String, List[Int]]) extends ServerMessage
   case class Error(message: String) extends ServerMessage
 
   final case class ServerHandle(stop: () => Unit)
@@ -83,6 +84,15 @@ object JSONServer {
 	  case Pong(timestampMs) => Map("type" -> "pong", "timestampMs" -> timestampMs)
 	  case Ack(action) => Map("type" -> "ack", "action" -> action)
 	  case Parsed(kind, value) => Map("type" -> "parsed", "kind" -> kind, "value" -> value)
+	  case Ran(kind, value, intEnv, boolEnv, arrEnv) =>
+		Map(
+		  "type" -> "ran",
+		  "kind" -> kind,
+		  "value" -> value,
+		  "intEnv" -> intEnv,
+		  "boolEnv" -> boolEnv,
+		  "arrEnv" -> arrEnv
+		)
 	  case Error(message) => Map("type" -> "error", "message" -> message)
 	}
 	stringifyJson(map)
@@ -142,17 +152,44 @@ object JSONServer {
 	case Command(action, payload) =>
 	  action match {
 		case "parseAst" =>
-		  payloadString(payload, "astText") match {
-			case Left(err) => Error(err)
-			case Right(astText) =>
-			  val kind = payloadStringOptional(payload, "kind").getOrElse("auto")
-			  AstTextParser.parse(kind, astText) match {
-				case Right(parsed) => Parsed(parsed.kind, parsed.value.toString)
-				case Left(err) => Error(err)
-			  }
-		  }
+		  parseAstPayload(payload).fold(err => Error(err), parsed => Parsed(parsed.kind, parsed.value.toString))
+		case "run" =>
+		  parseAstPayload(payload)
+			.flatMap(executeParsedAst)
+			.fold(err => Error(err), result => result)
 		case _ => Ack(action)
 	  }
+  }
+
+  private def parseAstPayload(payload: Map[String, Any]): Either[String, AstTextParser.ParsedAst] = {
+	val kind = payloadStringOptional(payload, "kind").getOrElse("auto")
+	if (payload.contains("blocks") || payload.contains("rootBlocks")) {
+	  AstBlockStateParser.parsePayload(kind, payload)
+	} else {
+	  payloadString(payload, "astText").flatMap(astText => AstTextParser.parse(kind, astText))
+	}
+  }
+
+  private def executeParsedAst(parsed: AstTextParser.ParsedAst): Either[String, ServerMessage] = {
+	val env = Ast.Env(Map.empty, Map.empty, Map.empty, None)
+	try {
+	  val valueText = parsed.value match {
+		case v: Ast.IntType => Interpreter.eval(v, env).toString
+		case v: Ast.BoolType => Interpreter.eval(v, env).toString
+		case v: Ast.ArrayType => Interpreter.eval(v, env).toString
+		case v: Ast.Statement =>
+		  Interpreter.eval(v, env)
+		  "unit"
+		case v: Ast.Scope =>
+		  Interpreter.eval(v, env)
+		  "unit"
+		case _ => return Left(s"Unsupported parsed value for run: ${parsed.kind}")
+	  }
+
+	  Right(Ran(parsed.kind, valueText, env.intEnv, env.boolEnv, env.arrEnv))
+	} catch {
+	  case t: Throwable => Left(Option(t.getMessage).getOrElse(t.toString))
+	}
   }
 
   private def payloadString(payload: Map[String, Any], field: String): Either[String, String] = {

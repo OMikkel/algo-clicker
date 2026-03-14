@@ -4,8 +4,12 @@ object Ast {
 
   type Id = String
 
+  abstract class AstNode
 
-  abstract sealed class IntType
+
+
+
+  abstract sealed class IntType extends AstNode
 
   case class IntLit(v: Int) extends IntType
 
@@ -54,7 +58,7 @@ object Ast {
   case class BoolNot(b: BoolType) extends BoolType
 
 
-  abstract sealed class ArrayType
+  abstract sealed class ArrayType extends AstNode
 
   case class ArrayLit(values: List[Int]) extends ArrayType
 
@@ -66,11 +70,13 @@ object Ast {
 
 
 
-  abstract sealed class Statement
+  abstract sealed class Statement extends AstNode
 
   case class IntAssign(variable: IntVar, value: IntType) extends Statement
 
   case class BoolAssign(variable: BoolVar, value: BoolType) extends Statement
+
+  case class ArrayAssign(variable: ArrayVar, value: ArrayType) extends Statement
 
   case class If(cond: BoolType, thenBlock: Scope, elseBlock: Scope) extends Statement
 
@@ -92,4 +98,11 @@ object Ast {
   }
 
 
+  abstract class TraceType
+  case class TraceArrAssign_A(value: List[Int], arr: Id) extends TraceType
+  case class TraceArrSwap(index1: Int, index2: Int, arr: Id) extends TraceType
+  case class TraceArrayInsert(index: Int, value: Int, arr: Id) extends TraceType
+  case class TraceArrayRemove(index: Int, arr: Id) extends TraceType
+  case class TraceArrayConcat(arr1: Id, arr2: Id) extends TraceType
+  case class NoTrace() extends TraceType
 }

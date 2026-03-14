@@ -67,6 +67,17 @@ object TestInterpreter {
     test(BoolAssign(BoolVar("a"), BoolLit(false)), env)
     assert(lookupBool("a", env) == false)
 
+    // Array assign
+    env = listEnvOn_A
+    test(ArrayAssign(ArrayVar("A"), ArrayLit(List(9,8,7))), env)
+    assert(lookupArr("A", env) == List(9,8,7))
+    env = listEnvInEnvOn_A
+    test(ArrayAssign(ArrayVar("A"), ArrayLit(List(6,5,4))), env)
+    assert(lookupArr("A", env) == List(6,5,4))
+    env = Env(Map(), Map(), Map(), None)
+    test(ArrayAssign(ArrayVar("A"), ArrayLit(List(3,2,1))), env)
+    assert(lookupArr("A", env) == List(3,2,1))
+
     // If statement
     env = intEnvOn_a
     test(If(BoolLit(true), Scope(List(IntAssign(IntVarLit("a"), IntLit(1)))), Scope(List(IntAssign(IntVarLit("a"), IntLit(0))))), env)

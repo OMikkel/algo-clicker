@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Backend Frontend Test Client (Non-Prod)</title>
+  <title>Backend Frontend JSON Parser Test Client (Non-Prod)</title>
   <style>
     body { font-family: Arial, sans-serif; margin: 20px; max-width: 900px; }
     label { display: block; margin-top: 12px; font-weight: bold; }
@@ -17,8 +17,8 @@
   </style>
 </head>
 <body>
-  <h1>Backend Frontend Test Client</h1>
-  <p><strong>Test-only page</strong> for websocket protocol checks. This is not production UI.</p>
+  <h1>Backend Frontend JSON Parser Test Client</h1>
+  <p><strong>Test-only page</strong> for websocket parser checks. This is not production UI.</p>
 
   <label for="wsUrl">WebSocket URL</label>
   <input id="wsUrl" value="ws://127.0.0.1:8080" />
@@ -29,24 +29,35 @@
       <input id="clientId" value="browser-client" />
     </div>
     <div>
-      <label for="kind">AST kind</label>
+      <label for="kind">Expected AST kind</label>
       <select id="kind">
         <option value="auto" selected>auto</option>
-        <option value="statement">statement</option>
         <option value="scope">scope</option>
+        <option value="statement">statement</option>
         <option value="int">int</option>
         <option value="bool">bool</option>
-        <option value="array">array</option>
       </select>
     </div>
   </div>
 
-  <label for="astText">AST text</label>
-  <textarea id="astText">Scope(List(IntAssign(IntVarLit("a"), IntLit(2)), ArrayInsert(ArrayVar("A"), IntLit(10), IntLit(1))))</textarea>
+  <div class="row">
+    <div>
+      <label for="example">Example payload</label>
+      <select id="example"></select>
+    </div>
+    <div>
+      <label>&nbsp;</label>
+      <button id="loadExampleBtn">Load example into payload</button>
+    </div>
+  </div>
+
+  <label for="payloadJson">BlockState JSON payload</label>
+  <textarea id="payloadJson"></textarea>
 
   <div class="buttons">
     <button id="connectBtn">Connect</button>
-    <button id="parseBtn" disabled>Send parseAst</button>
+    <button id="parseBtn" disabled>Send parseAst (JSON block state)</button>
+    <button id="runBtn" disabled>Run in Interpreter</button>
     <button id="closeBtn" disabled>Close</button>
   </div>
 
@@ -59,14 +70,57 @@
     const wsUrlEl = document.getElementById('wsUrl');
     const clientIdEl = document.getElementById('clientId');
     const kindEl = document.getElementById('kind');
-    const astTextEl = document.getElementById('astText');
+    const exampleEl = document.getElementById('example');
+    const loadExampleBtn = document.getElementById('loadExampleBtn');
+    const payloadJsonEl = document.getElementById('payloadJson');
     const connectBtn = document.getElementById('connectBtn');
     const parseBtn = document.getElementById('parseBtn');
+    const runBtn = document.getElementById('runBtn');
     const closeBtn = document.getElementById('closeBtn');
     const statusEl = document.getElementById('status');
     const logEl = document.getElementById('log');
 
     let socket = null;
+
+    const examples = {
+      testSampleIfs: {
+        blocks: {
+          "if-block-uuid1": { type: "If", id: "if-block-uuid1", parentId: "root", cond: "bool-lit-uuid1", ifBlock: [], elseBlock: [] },
+          "bool-lit-uuid1": { type: "BoolLit", id: "bool-lit-uuid1", parentId: "if-block-uuid1", b: true },
+          "if-block-uuid2": { type: "If", id: "if-block-uuid2", parentId: "root", cond: "bool-lit-uuid2", ifBlock: [], elseBlock: [] },
+          "bool-lit-uuid2": { type: "BoolLit", id: "bool-lit-uuid2", parentId: "if-block-uuid2", b: false }
+        },
+        rootBlocks: ["if-block-uuid1", "if-block-uuid2"]
+      },
+      testSampleInts: {
+        blocks: {
+          "int-block": { type: "IntLit", id: "int-block", parentId: "root", v: 42 }
+        },
+        rootBlocks: ["int-block"]
+      },
+      testIntsAndIfs: {
+        blocks: {
+          "intplus-block": { type: "IntPlus", id: "intplus-block", parentId: "root", v1: "int-left", v2: "int-right" },
+          "int-left": { type: "IntLit", id: "int-left", parentId: "intplus-block", v: 5 },
+          "int-right": { type: "IntLit", id: "int-right", parentId: "intplus-block", v: 10 }
+        },
+        rootBlocks: ["intplus-block"]
+      }
+    };
+
+    function populateExamples() {
+      Object.keys(examples).forEach((name) => {
+        const option = document.createElement('option');
+        option.value = name;
+        option.textContent = name;
+        exampleEl.appendChild(option);
+      });
+    }
+
+    function loadSelectedExample() {
+      const key = exampleEl.value;
+      payloadJsonEl.value = JSON.stringify(examples[key], null, 2);
+    }
 
     function log(message) {
       const time = new Date().toISOString();
@@ -76,10 +130,32 @@
 
     function setConnected(connected) {
       parseBtn.disabled = !connected;
+      runBtn.disabled = !connected;
       closeBtn.disabled = !connected;
       connectBtn.disabled = connected;
       statusEl.textContent = connected ? 'Status: Connected' : 'Status: Disconnected';
     }
+
+    function readPayloadWithKind() {
+      let payload;
+      try {
+        payload = JSON.parse(payloadJsonEl.value);
+      } catch (error) {
+        log(`Invalid JSON payload: ${error.message}`);
+        return null;
+      }
+
+      payload.kind = kindEl.value;
+      return payload;
+    }
+
+    populateExamples();
+    loadSelectedExample();
+
+    loadExampleBtn.addEventListener('click', () => {
+      loadSelectedExample();
+      log(`Loaded example: ${exampleEl.value}`);
+    });
 
     function safeSend(obj) {
       if (!socket || socket.readyState !== WebSocket.OPEN) {
@@ -125,13 +201,28 @@
     });
 
     parseBtn.addEventListener('click', () => {
+      const payload = readPayloadWithKind();
+      if (!payload) {
+        return;
+      }
+
       safeSend({
         type: 'command',
         action: 'parseAst',
-        payload: {
-          kind: kindEl.value,
-          astText: astTextEl.value
-        }
+        payload
+      });
+    });
+
+    runBtn.addEventListener('click', () => {
+      const payload = readPayloadWithKind();
+      if (!payload) {
+        return;
+      }
+
+      safeSend({
+        type: 'command',
+        action: 'run',
+        payload
       });
     });
 

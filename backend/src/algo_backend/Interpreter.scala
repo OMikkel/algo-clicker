@@ -51,6 +51,9 @@ object Interpreter {
   def eval(s: Statement, env: Env): Unit = s match {
     case IntAssign(variable, value) => setInt(getId(variable), eval(value, env), env)
     case BoolAssign(variable, value) => setBool(variable.id, eval(value, env), env)
+    case ArrayAssign(variable, value) =>
+      setArr(variable.id, eval(value, env), env)
+      if (variable.id == "A") trace(TraceArrAssign_A(eval(value, env), variable.id), None, env)
     case If(cond, thenBlock, elseBlock) => if (eval(cond, env)) eval(thenBlock, env) else eval(elseBlock, env)
     case While(cond, body) => while (eval(cond, env)) eval(body, env)
     case Swap(a, b) =>
@@ -61,6 +64,11 @@ object Interpreter {
       val bValue = bRef.read()
       aRef.write(bValue)
       bRef.write(aValue)
+      if (a.isInstanceOf[IntVarListLookup] && b.isInstanceOf[IntVarListLookup]) {
+        val aIndex = a.asInstanceOf[IntVarListLookup].index
+        val bIndex = b.asInstanceOf[IntVarListLookup].index
+        if (a.asInstanceOf[IntVarListLookup].id == b.asInstanceOf[IntVarListLookup].id) trace(TraceArrSwap(eval(a.asInstanceOf[IntVarListLookup].index, env), eval(b.asInstanceOf[IntVarListLookup].index, env), a.asInstanceOf[IntVarListLookup].id), None, env)
+      }
     case ArrayInsert(arr, value, index) =>
       arr match {
         case ArrayVar(id) =>
@@ -70,6 +78,7 @@ object Interpreter {
             throw InterpreterError(s"ArrayInsert index out of range: $indexValue")
           }
           setArr(id, arrValue.patch(indexValue, Seq(eval(value, env)), 0), env)
+          trace(TraceArrayInsert(indexValue, eval(value, env), id), None, env)
         case _ =>
           throw InterpreterError("ArrayInsert target must be an array variable")
       }
@@ -82,6 +91,7 @@ object Interpreter {
             throw InterpreterError(s"ArrayRemove index out of range: $indexValue")
           }
           setArr(id, arrValue.patch(indexValue, Seq(), 1), env)
+          trace(TraceArrayRemove(indexValue, id), None, env)
         case _ =>
           throw InterpreterError("ArrayRemove target must be an array variable")
       }
@@ -243,8 +253,20 @@ object Interpreter {
   /**
     * Sends message to frontend.
     */
-  def trace(msg: => String): Unit =
-      println(msg)
+  def trace(trace: => TraceType, astId: Option[String], env: Env): Unit = {
+      trace match {
+        case TraceArrAssign_A(value, id) =>
+          println(s"Trace: Assigned array $id to value $value")
+        case TraceArrSwap(index1, index2, arrId) =>
+          println(s"Trace: Array $arrId swapped indices $index1 and $index2")
+        case TraceArrayInsert(index, value, arrId) =>
+          println(s"Trace: Array $arrId inserted value $value at index $index")
+        case TraceArrayRemove(index, arrId) =>
+          println(s"Trace: Array $arrId removed value at index $index")
+        case _ =>
+          println(s"Trace: Unrecognized trace type")
+      }
+  }
 
   /**
     * Exception thrown in case of runtime errors.

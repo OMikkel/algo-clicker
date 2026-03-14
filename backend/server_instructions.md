@@ -60,6 +60,26 @@ Rules:
 
 #### `command` action: `parseAst`
 
+Preferred payload (frontend block graph format):
+
+```json
+{
+  "type": "command",
+  "action": "parseAst",
+  "payload": {
+    "kind": "auto",
+    "blocks": {
+      "intplus-block": { "type": "IntPlus", "id": "intplus-block", "parentId": "root", "v1": "int-left", "v2": "int-right" },
+      "int-left": { "type": "IntLit", "id": "int-left", "parentId": "intplus-block", "v": 5 },
+      "int-right": { "type": "IntLit", "id": "int-right", "parentId": "intplus-block", "v": 10 }
+    },
+    "rootBlocks": ["intplus-block"]
+  }
+}
+```
+
+Legacy payload (constructor text) is still supported:
+
 ```json
 {
   "type": "command",
@@ -72,9 +92,30 @@ Rules:
 ```
 
 Rules:
-- `payload.astText` is required and must be a string.
 - `payload.kind` is optional (`auto` by default).
 - `kind` supports: `auto`, `int`, `bool`, `array`, `statement`, `scope`.
+- Preferred mode: `payload.blocks` object + `payload.rootBlocks` string array.
+- Legacy mode: `payload.astText` string.
+
+#### `command` action: `run`
+
+Runs the parsed AST in `Interpreter` and returns the runtime value plus resulting environment maps.
+
+```json
+{
+  "type": "command",
+  "action": "run",
+  "payload": {
+    "kind": "auto",
+    "blocks": {
+      "intplus-block": { "type": "IntPlus", "id": "intplus-block", "parentId": "root", "v1": "int-left", "v2": "int-right" },
+      "int-left": { "type": "IntLit", "id": "int-left", "parentId": "intplus-block", "v": 5 },
+      "int-right": { "type": "IntLit", "id": "int-right", "parentId": "intplus-block", "v": 10 }
+    },
+    "rootBlocks": ["intplus-block"]
+  }
+}
+```
 
 ## Server -> Client Messages
 
@@ -138,6 +179,21 @@ Sent when parsing or validation fails, including:
 - wrong field types
 - unknown `type`
 - unsupported WebSocket opcode at app layer
+
+### 6) Ran
+
+```json
+{
+  "type": "ran",
+  "kind": "int",
+  "value": "15",
+  "intEnv": {},
+  "boolEnv": {},
+  "arrEnv": {}
+}
+```
+
+Sent after a successful `command` with `action = "run"`.
 
 ## WebSocket Control Behavior
 
