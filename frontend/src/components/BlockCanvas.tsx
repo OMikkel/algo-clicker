@@ -12,24 +12,13 @@ export default function BlockCanvas() {
 			<div className="flex flex-row items-center justify-evenly">
 				<h2 className="text-white text-lg font-bold">Canvas</h2>
 				<div className="flex gap-2">
-					<Button className="bg-blue-500">
+					<Button className="bg-blue-500" onClick={() => runApplication()}>
 						<PlayIcon className="inline-block w-5 h-5 mr-1" />
 					</Button>
-					<Button className="bg-yellow-500">
+					<Button className="bg-yellow-500" onClick={() => rerunApplication()}>
 						<RefreshCwIcon className="inline-block w-5 h-5 mr-1" />
 					</Button>
-					<Button
-						className="bg-red-500"
-						onClick={() => {
-							if (
-								confirm(
-									"Are you sure you want to clear the canvas? This cannot be undone.",
-								)
-							) {
-								resetApplication();
-							}
-						}}
-					>
+					<Button className="bg-red-500" onClick={() => resetApplication()}>
 						<Trash2Icon className="inline-block w-5 h-5 mr-1" />
 					</Button>
 				</div>

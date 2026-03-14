@@ -24,6 +24,9 @@ type GlobalState = {
 	templates: BlockId[];
 	draggedBlockId: BlockId | null;
 	updateBlockData: <T>(blockId: string, newData: Partial<T>) => void;
+	runApplication: () => void;
+	rerunApplication: () => void;
+	resetApplication: () => void;
 };
 
 const GlobalStateContext = React.createContext<GlobalState | null>(null);
@@ -70,6 +73,28 @@ export default function GlobalStateProvider({
 			setBlockState(JSON.parse(storedData));
 		}
 	}, []);
+
+	const runApplication = () => {
+		console.log("Running application with blocks:", blockState.blocks);
+	};
+
+	const rerunApplication = () => {
+		console.log("Re-running application with blocks:", blockState.blocks);
+	};
+
+	const resetApplication = () => {
+		if (
+			confirm(
+				"Are you sure you want to reset the application? This cannot be undone.",
+			)
+		) {
+			updateBlockState(() => ({
+				blocks: {},
+				rootBlocks: [],
+				templates: ASTs.map((ast) => ast.id),
+			}));
+		}
+	};
 
 	const onDragStart = (event: any) => {
 		const source = event.operation.source;
@@ -248,6 +273,9 @@ export default function GlobalStateProvider({
 				templates: blockState.templates,
 				draggedBlockId,
 				updateBlockData,
+				runApplication,
+				rerunApplication,
+				resetApplication,
 			}}
 		>
 			<DragDropProvider onDragEnd={onDragEnd} onDragStart={onDragStart}>
