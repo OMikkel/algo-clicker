@@ -62,14 +62,14 @@ export default function GlobalStateProvider({
 			),
 		},
 		templates: ASTs.map((ast) => ast.id),
-    });
-    
-    useEffect(() => {
-        const storedData = window.localStorage.getItem("algo-playground-storage");
-        if (storedData) {
-            setBlockState(JSON.parse(storedData));
-        }
-    }, []);
+	});
+
+	useEffect(() => {
+		const storedData = window.localStorage.getItem("algo-playground-storage");
+		if (storedData) {
+			setBlockState(JSON.parse(storedData));
+		}
+	}, []);
 
 	const onDragStart = (event: any) => {
 		const source = event.operation.source;
@@ -97,12 +97,15 @@ export default function GlobalStateProvider({
 				},
 			};
 		});
-    };
-    
-    const updateBlockState = (callback: (prev: BlockState) => BlockState) => {
-        window.localStorage.setItem("algo-playground-storage", JSON.stringify(blockState));
-        setBlockState(callback)
-    }
+	};
+
+	const updateBlockState = (callback: (prev: BlockState) => BlockState) => {
+		window.localStorage.setItem(
+			"algo-playground-storage",
+			JSON.stringify(blockState),
+		);
+		setBlockState(callback);
+	};
 
 	const onDragEnd = (event: any) => {
 		const { operation } = event;
@@ -167,7 +170,7 @@ export default function GlobalStateProvider({
 					"and updated state:",
 					{
 						blocks: nextBlocks,
-						rootBlocks: nextRoot,$
+						rootBlocks: nextRoot,
 						templates: prev.templates,
 					},
 				);
