@@ -23,7 +23,7 @@ function drawHead(xPos: number, yPos: number, size: number, ctx: CanvasRendering
     drawEye(xPos+size*0.4, yPos + size * 0.1, size * 0.3, ctx);
     drawEye(xPos-size*0.4, yPos + size * 0.1, size * 0.3, ctx);
 
-    drawCylinder(xPos, yPos - size * 0.9, size * 0.03, size * 0.6, 0.3, "rgb(0, 153, 255)", "black", ctx)
+    drawCylinder(xPos, yPos - size * 0.85, size * 0.03, size * 0.6, 0.3, "rgb(0, 153, 255)", "black", ctx)
     drawCircle(xPos, yPos - size * 1.5, size*0.1, "rgb(65, 179, 255)", ctx);
 }
 
