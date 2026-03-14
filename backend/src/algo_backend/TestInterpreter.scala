@@ -4,34 +4,89 @@ import Interpreter.*
 import Ast.{IntType, *}
 
 object TestInterpreter {
+  val boolEnvOn_a: Env = Env(Map(), Map("a" -> true), Map(), None)
+  val boolEnvInEnvOn_a: Env = Env(Map(),Map(),Map(), Some(Env(Map(), Map("a" -> true), Map(), None)))
+  val intEnvOn_a: Env = Env(Map("a" -> 5), Map(), Map(), None)
+  val intEnvInEnvOn_a: Env = Env(Map(),Map(),Map(), Some(Env(Map("a" -> 5), Map(), Map(), None)))
+  val listEnvOn_A: Env = Env(Map(), Map(), Map("A" -> List(5,8,1)), None)
+  val listEnvInEnvOn_A: Env = Env(Map(),Map(),Map(), Some(Env(Map(), Map(), Map("A" -> List(5,8,1)), None)))
+
+
+
   def main(args: Array[String]): Unit = {
     // Int tests
     test(IntLit(1), 1)
+    test(IntPlus(IntLit(1), IntLit(2)), 3)
+    test(IntMinus(IntLit(1), IntLit(2)), -1)
+    test(IntMult(IntLit(3), IntLit(2)), 6)
+    test(IntDiv(IntLit(3), IntLit(2)), 1)
+    test(IntMod(IntLit(3), IntLit(2)), 1)
+    test(IntVarLit("a"), 5, intEnvOn_a)
+    test(IntVarLit("a"), 5, intEnvInEnvOn_a)
+    test(IntVarListLookup("A", 1), 8, listEnvOn_A)
+    test(IntVarListLookup("A", 1), 8, listEnvInEnvOn_A)
+    test(IntArrayLength(ArrayLit(List(4,6,9))), 3)
 
     // Bool tests
     test(BoolLit(true), true)
+    test(BoolVar("a"), true, boolEnvOn_a)
+    test(BoolVar("a"), true, boolEnvInEnvOn_a)
+    test(BoolGreater(IntLit(1), IntLit(2)), false)
+    test(BoolAnd(BoolLit(true), BoolLit(false)), false)
+    test(BoolOr(BoolLit(false), BoolLit(true)), true)
+    test(BoolNot(BoolVar("a")), false, boolEnvOn_a)
 
     // Array tests
-
+    test(ArrayLit(List(1,2,3)), List(1,2,3))
+    test(ArrayVar("A"), List(5,8,1), listEnvOn_A)
+    test(ArrayVar("A"), List(5,8,1), listEnvInEnvOn_A)
+    test(ArrayRange(ArrayLit(List(0,1,2,3,4,5)), IntLit(1), IntLit(3)), List(1,2,3))
+    test(ArrayConcat(ArrayLit(List(0,1,2)), ArrayLit(List(3,4,5))), List(0,1,2,3,4,5))
 
     // Statement tests
-
+    
+    
     // Block tests
+
+
+    println("😝😎😅😵‍💫🧌😁✅✅✅    ALL TESTS PASSED!!!!!!    ✅✅✅😝😎😅😵‍💫🧌😁")
   }
 
 
-  def test(prg: IntType, expected: Int): Unit = {
-    assert(eval(prg) == expected)
-  }
-
-  def test(prg: BoolType, expected: Boolean): Unit = {
-    assert(eval(prg) == expected)
-  }
-
-  def test(prg: ArrayType, expected: List[IntType]) = {
-    assert(eval(prg) == expected)
-  }
 
 
+  def test(prg: IntType, expected: Int, env: Env): Unit =
+    assert(eval(prg, env) == expected)
+
+  def test(prg: BoolType, expected: Boolean, env: Env): Unit =
+    assert(eval(prg, env) == expected)
+
+  def test(prg: ArrayType, expected: List[Int], env: Env): Unit =
+    assert(eval(prg, env) == expected)
+
+  def test(prg: Statement, env: Env): Unit =
+    eval(prg, env)
+
+  def test(prg: Scope, env: Env): Unit =
+    eval(prg, env)
+
+
+  // With no env listed
+  var emptyEnv = Env(Map(), Map(), Map(), None)
+
+  def test(prg: IntType, expected: Int): Unit =
+    test(prg, expected, emptyEnv)
+
+  def test(prg: BoolType, expected: Boolean): Unit =
+    test(prg, expected, emptyEnv)
+
+  def test(prg: ArrayType, expected: List[Int]): Unit =
+    test(prg, expected, emptyEnv)
+
+  def test(prg: Statement): Unit =
+    test(prg, emptyEnv)
+
+  def test(prg: Scope): Unit =
+    test(prg, emptyEnv)
 }
 
