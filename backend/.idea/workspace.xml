@@ -6,12 +6,6 @@
   <component name="ChangeListManager">
     <list default="true" id="d6551a71-1d6c-4ad5-8b4c-7dd6ae6b9431" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend_frontend_test_client.html" beforeDir="false" afterPath="$PROJECT_DIR$/backend_frontend_test_client.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/out/production/backend/algo_backend/WebClient.html" beforeDir="false" afterPath="$PROJECT_DIR$/out/production/backend/algo_backend/WebClient.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/server_instructions.md" beforeDir="false" afterPath="$PROJECT_DIR$/server_instructions.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/algo_backend/Interpreter.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/algo_backend/Interpreter.scala" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/algo_backend/JSONServer.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/algo_backend/JSONServer.scala" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/algo_backend/WebClient.html" beforeDir="false" afterPath="$PROJECT_DIR$/src/algo_backend/WebClient.html" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
