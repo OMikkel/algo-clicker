@@ -8,8 +8,8 @@ function App() {
 	return (
 		<GlobalStateProvider>
 			<div className="flex flex-row">
-			<BlockCanvas />
-			{VisualizationFrame()}
+				<BlockCanvas />
+				{VisualizationFrame()}
 			</div>
 		</GlobalStateProvider>
 	);
