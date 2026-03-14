@@ -15,6 +15,29 @@ This project now includes:
 4. Load one of the block-state JSON examples and click **Send parseAst**.
 5. Click **Run in Interpreter** to execute the AST and receive runtime state.
 
+## JSON message types
+
+Client -> Server (`type` field):
+
+- `connect` - starts a session (`clientId`)
+- `ping` - heartbeat (`timestampMs`)
+- `command` - action request (`action`, `payload`)
+  - `action: "parseAst"` - parse AST payload (`blocks/rootBlocks` or `astText`)
+  - `action: "run"` - parse + execute AST in interpreter (supports optional `initialState`)
+- `continue` - resume interpreter after a `trace` pause
+
+Server -> Client (`type` field):
+
+- `connected` - confirms connect (`sessionId`)
+- `pong` - ping response (`timestampMs`)
+- `ack` - generic acknowledgement (`action`)
+- `parsed` - parse success (`kind`, `value`)
+- `ran` - run success (`kind`, `value`, `intEnv`, `boolEnv`, `arrEnv`)
+- `trace` - interpreter step event during run (`event`, event-specific fields, env snapshots)
+- `error` - validation/parse/runtime error (`message`)
+
+Trace flow: during `run`, server may send one or more `trace` messages and pause execution until the client sends `{"type":"continue"}` for each step.
+
 Example request sent by the web client:
 
 ```json
