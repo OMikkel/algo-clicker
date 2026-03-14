@@ -1,12 +1,12 @@
 import { BLOCK_REGISTRY } from "../constants/AstConditions";
 
-export const createBlockFromAST = (type: string, parentId: string = "root") => {
+export const createBlockFromAST = (type: string, prefix: string = "", parentId: string = "root") => {
     const ast = BLOCK_REGISTRY[type];
     if (!ast) {
         throw new Error(`Unknown block type: ${type}`);
     }
     return {
-        id: crypto.randomUUID(),
+        id: `${prefix}:${crypto.randomUUID()}`,
         type,
         parentId,
         ...ast.slots.reduce((acc, slot) => {
