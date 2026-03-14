@@ -5,10 +5,15 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="d6551a71-1d6c-4ad5-8b4c-7dd6ae6b9431" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend_frontend_test_client.html" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/server_instructions.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/algo_backend/AstTextParser.scala" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/algo_backend/TestAstTextParser.scala" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/algo_backend/WebClient.html" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/web/backend_frontend_test_redirect.html" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/algo_backend/Ast.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/algo_backend/Ast.scala" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/algo_backend/Interpreter.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/algo_backend/Interpreter.scala" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/algo_backend/TestInterpreter.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/algo_backend/TestInterpreter.scala" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/algo_backend/JSONServer.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/algo_backend/JSONServer.scala" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -37,21 +42,30 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;Application.TestInterpreter.executor&quot;: &quot;Run&quot;,
-    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;master&quot;,
-    &quot;ignore.virus.scanning.warn.message&quot;: &quot;true&quot;,
-    &quot;project.structure.last.edited&quot;: &quot;Project&quot;,
-    &quot;project.structure.proportion&quot;: &quot;0.15&quot;,
-    &quot;project.structure.side.proportion&quot;: &quot;0.0&quot;,
-    &quot;settings.editor.selected.configurable&quot;: &quot;preferences.pluginManager&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "Application.JSONServer.executor": "Run",
+    "Application.TestInterpreter.executor": "Run",
+    "ModuleVcsDetector.initialDetectionPerformed": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "SHARE_PROJECT_CONFIGURATION_FILES": "true",
+    "git-widget-placeholder": "master",
+    "ignore.virus.scanning.warn.message": "true",
+    "project.structure.last.edited": "Project",
+    "project.structure.proportion": "0.15",
+    "project.structure.side.proportion": "0.0",
+    "settings.editor.selected.configurable": "preferences.pluginManager"
   }
-}</component>
-  <component name="RunManager">
+}]]></component>
+  <component name="RunManager" selected="Application.JSONServer">
+    <configuration name="JSONServer" type="Application" factoryName="Application" temporary="true">
+      <option name="MAIN_CLASS_NAME" value="algo_backend.JSONServer" />
+      <module name="backend" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
     <configuration name="TestInterpreter" type="Application" factoryName="Application" temporary="true">
       <option name="MAIN_CLASS_NAME" value="algo_backend.TestInterpreter" />
       <module name="backend" />
@@ -61,6 +75,7 @@
     </configuration>
     <recent_temporary>
       <list>
+        <item itemvalue="Application.JSONServer" />
         <item itemvalue="Application.TestInterpreter" />
       </list>
     </recent_temporary>
@@ -74,6 +89,9 @@
       <updated>1773434638002</updated>
     </task>
     <servers />
+  </component>
+  <component name="UnknownFeatures">
+    <option featureType="com.intellij.fileTypeFactory" implementationName="*.md" />
   </component>
   <component name="github-copilot-workspace">
     <instructionFileLocations>

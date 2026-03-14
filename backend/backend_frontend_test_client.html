@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Backend Frontend Test Client (Non-Prod)</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; max-width: 900px; }
+    label { display: block; margin-top: 12px; font-weight: bold; }
+    input, select, textarea, button { font-size: 14px; padding: 8px; width: 100%; box-sizing: border-box; }
+    textarea { min-height: 160px; font-family: Consolas, monospace; }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .status { margin-top: 8px; font-weight: bold; }
+    .buttons { display: flex; gap: 10px; margin-top: 12px; }
+    .buttons button { width: auto; }
+    pre { background: #111; color: #ddd; padding: 12px; border-radius: 6px; overflow: auto; min-height: 120px; }
+  </style>
+</head>
+<body>
+  <h1>Backend Frontend Test Client</h1>
+  <p><strong>Test-only page</strong> for websocket protocol checks. This is not production UI.</p>
+
+  <label for="wsUrl">WebSocket URL</label>
+  <input id="wsUrl" value="ws://127.0.0.1:8080" />
+
+  <div class="row">
+    <div>
+      <label for="clientId">Client ID</label>
+      <input id="clientId" value="browser-client" />
+    </div>
+    <div>
+      <label for="kind">AST kind</label>
+      <select id="kind">
+        <option value="auto" selected>auto</option>
+        <option value="statement">statement</option>
+        <option value="scope">scope</option>
+        <option value="int">int</option>
+        <option value="bool">bool</option>
+        <option value="array">array</option>
+      </select>
+    </div>
+  </div>
+
+  <label for="astText">AST text</label>
+  <textarea id="astText">Scope(List(IntAssign(IntVarLit("a"), IntLit(2)), ArrayInsert(ArrayVar("A"), IntLit(10), IntLit(1))))</textarea>
+
+  <div class="buttons">
+    <button id="connectBtn">Connect</button>
+    <button id="parseBtn" disabled>Send parseAst</button>
+    <button id="closeBtn" disabled>Close</button>
+  </div>
+
+  <div id="status" class="status">Status: Disconnected</div>
+
+  <label for="log">Server log</label>
+  <pre id="log"></pre>
+
+  <script>
+    const wsUrlEl = document.getElementById('wsUrl');
+    const clientIdEl = document.getElementById('clientId');
+    const kindEl = document.getElementById('kind');
+    const astTextEl = document.getElementById('astText');
+    const connectBtn = document.getElementById('connectBtn');
+    const parseBtn = document.getElementById('parseBtn');
+    const closeBtn = document.getElementById('closeBtn');
+    const statusEl = document.getElementById('status');
+    const logEl = document.getElementById('log');
+
+    let socket = null;
+
+    function log(message) {
+      const time = new Date().toISOString();
+      logEl.textContent += `[${time}] ${message}\n`;
+      logEl.scrollTop = logEl.scrollHeight;
+    }
+
+    function setConnected(connected) {
+      parseBtn.disabled = !connected;
+      closeBtn.disabled = !connected;
+      connectBtn.disabled = connected;
+      statusEl.textContent = connected ? 'Status: Connected' : 'Status: Disconnected';
+    }
+
+    function safeSend(obj) {
+      if (!socket || socket.readyState !== WebSocket.OPEN) {
+        log('Cannot send: socket is not open.');
+        return;
+      }
+      const message = JSON.stringify(obj);
+      socket.send(message);
+      log(`Sent: ${message}`);
+    }
+
+    connectBtn.addEventListener('click', () => {
+      const url = wsUrlEl.value.trim();
+      if (!url) {
+        log('Please provide a websocket URL.');
+        return;
+      }
+
+      socket = new WebSocket(url);
+      statusEl.textContent = 'Status: Connecting...';
+
+      socket.addEventListener('open', () => {
+        setConnected(true);
+        safeSend({
+          type: 'connect',
+          clientId: clientIdEl.value.trim() || 'browser-client'
+        });
+      });
+
+      socket.addEventListener('message', (event) => {
+        log(`Received: ${event.data}`);
+      });
+
+      socket.addEventListener('error', () => {
+        log('WebSocket error.');
+      });
+
+      socket.addEventListener('close', () => {
+        setConnected(false);
+        socket = null;
+        log('Connection closed.');
+      });
+    });
+
+    parseBtn.addEventListener('click', () => {
+      safeSend({
+        type: 'command',
+        action: 'parseAst',
+        payload: {
+          kind: kindEl.value,
+          astText: astTextEl.value
+        }
+      });
+    });
+
+    closeBtn.addEventListener('click', () => {
+      if (socket) {
+        socket.close();
+      }
+    });
+  </script>
+</body>
+</html>
+
+
