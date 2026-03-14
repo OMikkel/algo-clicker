@@ -4,7 +4,7 @@ export type Blocks = Record<string, Block>;
 
 export type Block = {
 	type: string;
-    [key: string]: unknown;
+    [key: string]: any;
 };
 
 type JsonObject = Record<string, unknown>;

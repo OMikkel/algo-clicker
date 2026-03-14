@@ -1,4 +1,5 @@
 import type { Block } from "../context/GlobalStateContext";
+import BoolLitBlock from "./Blocks/BoolLitBlock";
 import ConditionBlock from "./Blocks/ConditionBlock";
 import IfBlock from "./Blocks/IfBlock";
 
@@ -14,14 +15,10 @@ export default function BlockSelector({
 			return (
 				<IfBlock path={path} block={block} />
 			);
-		// case "BoolLit":
-		// 	return (
-		// 		<ConditionBlock id={path}>
-		// 			<div className="bg-green-500 text-white px-2 py-1 rounded-md">
-		// 				{block.b.toString()}
-		// 			</div>
-		// 		</ConditionBlock>
-		// 	);
+		case "BoolLit":
+			return (
+                <BoolLitBlock path={path} block={block} />
+			);
 		default:
 			return <div>Unknown Block Type</div>;
 	}
