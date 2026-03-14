@@ -1,10 +1,19 @@
 
-function drawAlgo(xPos: number, yPos: number, ctx: CanvasRenderingContext2D) {
-    drawBody(xPos, yPos + 150, 50, 70, 20, ctx);
-    drawHead(xPos, yPos, 60, ctx);
-    drawHand(xPos - 100, yPos + 150, 30, ctx);
-    drawHand(xPos + 100, yPos + 150, 30, ctx);
+const drawAlgo = {
+    drawHeadAndBody: (xPos: number, yPos: number, ctx: CanvasRenderingContext2D) => {
+        drawBody(xPos, yPos + 150, 50, 70, 20, ctx);
+        drawHead(xPos, yPos, 60, ctx);
+    },
+    drawArmsAndHands: (algoXPos: number, algoYPos: number, lArmXPos: number, lArmYPos: number, rArmXPos: number, rArmYPos: number, ctx: CanvasRenderingContext2D) => {
+        drawArm(algoXPos - 50, algoYPos + 95, Math.PI, lArmXPos, lArmYPos, -Math.PI / 2, 10, ctx);
+        drawHand(lArmXPos, lArmYPos, 30, ctx);
+        drawArm(algoXPos + 50, algoYPos + 95, 0, rArmXPos, rArmYPos, -Math.PI / 2, 10, ctx);
+        drawHand(rArmXPos, rArmYPos, 30, ctx);
+    },
 }
+
+
+
 
 function drawHead(xPos: number, yPos: number, size: number, ctx: CanvasRenderingContext2D) {
     ctx.fillStyle = "gray";
@@ -12,8 +21,8 @@ function drawHead(xPos: number, yPos: number, size: number, ctx: CanvasRendering
     drawCircle(xPos, yPos, size, ctx);
     ctx.fill();
 
-    drawEye(xPos+20, yPos, size / 4, ctx);
-    drawEye(xPos-20, yPos, size / 4, ctx);
+    drawEye(xPos+size*0.4, yPos, size * 0.3, ctx);
+    drawEye(xPos-size*0.4, yPos, size * 0.3, ctx);
 }
 
 function drawEye(xPos: number, yPos: number, size: number, ctx: CanvasRenderingContext2D) {
@@ -28,6 +37,25 @@ function drawEye(xPos: number, yPos: number, size: number, ctx: CanvasRenderingC
     ctx.fill();
 }
 
+function drawArm(fromX: number, fromY: number, fromDirection: number, toX: number, toY: number, toDirection: number, thickness: number, ctx: CanvasRenderingContext2D) {
+    ctx.strokeStyle = "lightGray";
+    ctx.lineWidth = thickness;
+
+    const distance = Math.hypot(toX - fromX, toY - fromY);
+    const controlLength = distance * 0.4;
+
+    const c1x = fromX + Math.cos(fromDirection) * controlLength;
+    const c1y = fromY + Math.sin(fromDirection) * controlLength;
+
+    const c2x = toX + Math.cos(toDirection) * controlLength;
+    const c2y = toY + Math.sin(toDirection) * controlLength;
+
+    ctx.beginPath();
+    ctx.moveTo(fromX, fromY);
+    ctx.bezierCurveTo(c1x, c1y, c2x, c2y, toX, toY);
+    ctx.stroke();
+}
+
 function drawCircle(xPos: number, yPos: number, size: number, ctx: CanvasRenderingContext2D) {
     ctx.arc(xPos, yPos, size, 0, size * Math.PI);
 }
@@ -38,7 +66,7 @@ function drawHand(xPos: number, yPos: number, size: number, ctx: CanvasRendering
     const radius = size / 2;
 
     ctx.save();
-    ctx.translate(xPos, yPos);
+    ctx.translate(xPos, yPos + 15);
 
     // Magnet body
     ctx.beginPath();

@@ -19,9 +19,13 @@ function Visualization({ width, height }: VisualizationProps) {
 		const ctx = canvas.getContext("2d");
 		if (!ctx) return;
 
-		drawAlgo(width / 2, 300, ctx);
+		drawAlgo.drawHeadAndBody(width / 2, 300, ctx);
+
 		const env = example_env;
 		drawEnvironment(env, ctx, height, width);
+
+		drawAlgo.drawArmsAndHands(width / 2, 300, 100, 480, 300, 500, ctx); // Her kan man indstille hvor Algos hænder skal være.
+
 	}, [height, width]);
 
 	return <canvas ref={canvasRef} width={width} height={height} />;
