@@ -1,17 +1,17 @@
 import BlockSelector from "./components/BlockSelector";
 import { useGlobalStateContext } from "./context/GlobalStateContext";
 
-type Props = {};
-
-export default function Toolbar({}: Props) {
+export default function Toolbar() {
 	const { templates } = useGlobalStateContext();
 
 	return (
-		<div className="w-3/3 bg-gray-800 p-4 rounded-md">
+		<div className="bg-gray-800 p-4 rounded-md">
 			<h2 className="text-white text-lg font-bold mb-4">Toolbar</h2>
-			{templates.map((templateId) => (
-				<BlockSelector key={templateId} id={templateId} />
-			))}
+			<div>
+				{templates.map((templateId) => (
+					<BlockSelector key={templateId} id={templateId} />
+				))}
+			</div>
 		</div>
 	);
 }

@@ -8,7 +8,7 @@ import Toolbar from "./Toolbar";
 function App() {
 	return (
 		<GlobalStateProvider>
-			<div className="flex flex-row gap-3 p-3 w-screen">
+			<div className="grid grid-cols-[1fr_2fr_1fr] gap-3 p-3 w-screen">
 				<Toolbar />
 				<BlockCanvas />
 				<VisualizationFrame />
@@ -25,7 +25,7 @@ function VisualizationFrame() {
 	useEffect(() => {
 		if (frameRef.current === null) return;
 		const observer = new ResizeObserver((entries) => {
-			for (let entry of entries) {
+			for (const entry of entries) {
 				// entry.target is the observed element
 				// entry.contentRect contains the size information
 				setWidth(entry.contentRect.width);

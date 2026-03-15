@@ -22,8 +22,8 @@ type GlobalState = {
 	blocks: Blocks;
 	rootBlocks: BlockId[];
 	templates: BlockId[];
-	isConnected: string;
 	draggedBlockId: BlockId | null;
+	deleteBlock: (blockId: string) => void;
 	updateBlockData: <T>(blockId: string, newData: Partial<T>) => void;
 	runApplication: () => void;
 	rerunApplication: () => void;
@@ -52,11 +52,9 @@ export default function GlobalStateProvider({
 	const socketRef = useRef<WebSocket | null>(null);
 	const [draggedBlockId, setDraggedBlockId] = useState<BlockId | null>(null);
 
-	console.log("Creating ASTs from BLOCK_REGISTRY:", BLOCK_REGISTRY);
 	const ASTs: Block[] = Object.keys(BLOCK_REGISTRY).map((key) =>
 		createBlockFromAST(key, "template", ""),
 	);
-	console.log("ASTs:", ASTs);
 	const [blockState, setBlockState] = useState<BlockState>({
 		...testSampleInts,
 		blocks: {
@@ -182,6 +180,19 @@ export default function GlobalStateProvider({
 				templates: ASTs.map((ast) => ast.id),
 			}));
 		}
+	};
+
+	const deleteBlock = (blockId: string) => {
+		updateBlockState((prev) => {
+			const nextBlocks = { ...prev.blocks };
+			const nextRoot = prev.rootBlocks.filter((id) => id !== blockId);
+			delete nextBlocks[blockId];
+			return {
+				blocks: nextBlocks,
+				rootBlocks: nextRoot,
+				templates: prev.templates,
+			};
+		});
 	};
 
 	const onDragStart = (event: any) => {
@@ -364,7 +375,7 @@ export default function GlobalStateProvider({
 				rootBlocks: blockState.rootBlocks,
 				templates: blockState.templates,
 				draggedBlockId,
-				isConnected,
+				deleteBlock,
 				updateBlockData,
 				runApplication,
 				rerunApplication,

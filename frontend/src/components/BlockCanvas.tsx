@@ -14,7 +14,7 @@ export default function BlockCanvas() {
 
 	return (
 		<div className="w-full bg-gray-800 p-4 rounded-md">
-			<div className="flex flex-row items-center justify-evenly">
+			<div className="flex flex-row items-center justify-between">
 				<h2 className="text-white text-lg font-bold">Canvas</h2>
 				<div className="flex gap-2">
 					<Button className="bg-blue-500" onClick={() => runApplication()}>
