@@ -1,0 +1,377 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Backend Frontend JSON Parser Test Client (Non-Prod)</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; max-width: 960px; }
+    label { display: block; margin-top: 12px; font-weight: bold; }
+    input, select, textarea, button { font-size: 14px; padding: 8px; width: 100%; box-sizing: border-box; }
+    textarea { min-height: 160px; font-family: Consolas, monospace; }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .status { margin-top: 8px; font-weight: bold; }
+    .buttons { display: flex; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
+    .buttons button { width: auto; }
+    pre { background: #111; color: #ddd; padding: 12px; border-radius: 6px; overflow: auto; min-height: 120px; }
+    #tracePanel {
+      display: none;
+      border: 2px solid #f90;
+      border-radius: 8px;
+      padding: 14px;
+      margin-top: 14px;
+      background: #1a1200;
+      color: #ffe;
+    }
+    #tracePanel h3 { margin: 0 0 10px 0; color: #f90; font-size: 1rem; }
+    #tracePanel pre { background: #0d0a00; min-height: 40px; }
+    #traceSummary { font-size: 1.05em; margin-bottom: 10px; }
+    .arr-viz { display: flex; flex-wrap: wrap; gap: 4px; margin: 6px 0 12px; }
+    .arr-box {
+      display: inline-flex; align-items: center; justify-content: center;
+      min-width: 40px; height: 40px; padding: 0 6px;
+      background: #1a3a5c; border: 1px solid #4a8fff; border-radius: 4px;
+      font-weight: bold; font-size: 1.05em;
+    }
+    .arr-box.highlighted { background: #3a5a1c; border-color: #8aff4a; color: #8aff4a; }
+    .env-row { font-size: 0.9em; color: #aaa; margin: 4px 0; }
+    .env-row b { color: #f90; }
+    #continueBtn { background: #f90; color: #000; font-weight: bold; border: none; cursor: pointer; border-radius: 4px; padding: 10px 24px; width: auto; margin-top: 10px; font-size: 1em; }
+    #continueBtn:disabled { opacity: 0.4; cursor: default; }
+  </style>
+</head>
+<body>
+  <h1>Backend Frontend JSON Parser Test Client</h1>
+  <p><strong>Test-only page</strong> for websocket parser checks. This is not production UI.</p>
+
+  <label for="wsUrl">WebSocket URL</label>
+  <input id="wsUrl" value="ws://127.0.0.1:8080" />
+
+  <div class="row">
+    <div>
+      <label for="clientId">Client ID</label>
+      <input id="clientId" value="browser-client" />
+    </div>
+    <div>
+      <label for="kind">Expected AST kind</label>
+      <select id="kind">
+        <option value="auto" selected>auto</option>
+        <option value="scope">scope</option>
+        <option value="statement">statement</option>
+        <option value="int">int</option>
+        <option value="bool">bool</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="row">
+    <div>
+      <label for="example">Example payload</label>
+      <select id="example"></select>
+    </div>
+    <div>
+      <label>&nbsp;</label>
+      <button id="loadExampleBtn">Load example into payload</button>
+    </div>
+  </div>
+
+  <label for="payloadJson">BlockState JSON payload</label>
+  <textarea id="payloadJson"></textarea>
+
+  <div class="buttons">
+    <button id="connectBtn">Connect</button>
+    <button id="parseBtn" disabled>Send parseAst</button>
+    <button id="runBtn" disabled>▶ Run in Interpreter</button>
+    <button id="closeBtn" disabled>Close</button>
+  </div>
+
+  <div id="status" class="status">Status: Disconnected</div>
+
+  <!-- Trace pause panel — shown while interpreter is waiting for "continue" -->
+  <div id="tracePanel">
+    <h3>⏸ Interpreter Paused — Trace Event</h3>
+    <div id="traceSummary"></div>
+    <div id="traceArrViz"></div>
+    <div id="traceIntEnv"></div>
+    <details style="margin-top:6px;">
+      <summary style="cursor:pointer;color:#aaa;font-size:0.9em;">Raw JSON</summary>
+      <pre id="traceData"></pre>
+    </details>
+    <button id="continueBtn" disabled>▶ Continue</button>
+  </div>
+
+  <label for="log">Server log</label>
+  <pre id="log"></pre>
+
+  <script>
+    const wsUrlEl        = document.getElementById('wsUrl');
+    const clientIdEl     = document.getElementById('clientId');
+    const kindEl         = document.getElementById('kind');
+    const exampleEl      = document.getElementById('example');
+    const loadExampleBtn = document.getElementById('loadExampleBtn');
+    const payloadJsonEl  = document.getElementById('payloadJson');
+    const connectBtn     = document.getElementById('connectBtn');
+    const parseBtn       = document.getElementById('parseBtn');
+    const runBtn         = document.getElementById('runBtn');
+    const closeBtn       = document.getElementById('closeBtn');
+    const statusEl       = document.getElementById('status');
+    const logEl          = document.getElementById('log');
+    const tracePanelEl   = document.getElementById('tracePanel');
+    const traceSummaryEl = document.getElementById('traceSummary');
+    const traceArrVizEl  = document.getElementById('traceArrViz');
+    const traceIntEnvEl  = document.getElementById('traceIntEnv');
+    const traceDataEl    = document.getElementById('traceData');
+    const continueBtn    = document.getElementById('continueBtn');
+
+    let socket = null;
+
+    // ── logging ──────────────────────────────────────────────────────────────
+    function log(message) {
+      const time = new Date().toISOString();
+      logEl.textContent += `[${time}] ${message}\n`;
+      logEl.scrollTop = logEl.scrollHeight;
+    }
+
+    // ── connection / running state ───────────────────────────────────────────
+    function setConnected(connected) {
+      connectBtn.disabled = connected;
+      closeBtn.disabled   = !connected;
+      if (!connected) setRunning(false);
+      updateActionButtons(connected, false);
+      statusEl.textContent = connected ? 'Status: Connected' : 'Status: Disconnected';
+    }
+
+    // paused = interpreter is blocked waiting for "continue"
+    function setRunning(paused) {
+      parseBtn.disabled = paused || !socket || socket.readyState !== WebSocket.OPEN;
+      runBtn.disabled   = paused || !socket || socket.readyState !== WebSocket.OPEN;
+      tracePanelEl.style.display = paused ? 'block' : 'none';
+      continueBtn.disabled = !paused;
+    }
+
+    function updateActionButtons(connected, paused) {
+      parseBtn.disabled = !connected || paused;
+      runBtn.disabled   = !connected || paused;
+    }
+
+    // ── example picker ───────────────────────────────────────────────────────
+    function populateExamples() {
+      Object.keys(examples).forEach((name) => {
+        const opt = document.createElement('option');
+        opt.value = name;
+        opt.textContent = name;
+        exampleEl.appendChild(opt);
+      });
+    }
+
+    function loadSelectedExample() {
+      payloadJsonEl.value = JSON.stringify(examples[exampleEl.value], null, 2);
+    }
+
+    // ── examples ────────────────────────────────────────────────────────────
+    const examples = {
+
+      // ── Stepping demos (use "▶ Run in Interpreter") ──────────────────────
+
+      // 4 array operations, 4 different trace types, predictable outcome.
+      // A = [5,3,8,1,4]  →  swap[0,4]  →  swap[1,3]  →  insert 99 at 2  →  remove index 3
+      demoArrayShuffle: {
+        kind: 'scope',
+        astText: 'Scope(List(' +
+          'Swap(IntVarListLookup("A", IntLit(0)), IntVarListLookup("A", IntLit(4))), ' +
+          'Swap(IntVarListLookup("A", IntLit(1)), IntVarListLookup("A", IntLit(3))), ' +
+          'ArrayInsert(ArrayVar("A"), IntLit(99), IntLit(2)), ' +
+          'ArrayRemove(ArrayVar("A"), IntLit(3))))',
+        initialState: { intEnv: {}, boolEnv: {}, arrEnv: { A: [5, 3, 8, 1, 4] } }
+      },
+
+      // Single bubble-sort pass: while i < 4, if A[i] > A[i+1] then swap.
+      // A = [3,1,4,1,5]  →  swaps at positions 0 and 2  →  A = [1,3,1,4,5]
+      demoBubbleSortPass: {
+        kind: 'scope',
+        astText: 'Scope(List(' +
+          'IntAssign(IntVarLit("i"), IntLit(0)), ' +
+          'While(BoolLess(IntVarLit("i"), IntLit(4)), ' +
+            'Scope(List(' +
+              'If(BoolGreater(IntVarListLookup("A", IntVarLit("i")), ' +
+                            'IntVarListLookup("A", IntPlus(IntVarLit("i"), IntLit(1)))), ' +
+                'Scope(List(Swap(IntVarListLookup("A", IntVarLit("i")), ' +
+                            'IntVarListLookup("A", IntPlus(IntVarLit("i"), IntLit(1)))))), ' +
+                'Scope(List())), ' +
+              'IntAssign(IntVarLit("i"), IntPlus(IntVarLit("i"), IntLit(1))))))))',
+        initialState: { intEnv: {}, boolEnv: {}, arrEnv: { A: [3, 1, 4, 1, 5] } }
+      },
+
+      // ── Parse-only tests (use "Send parseAst") ───────────────────────────
+
+      testSampleIfs: {
+        blocks: {
+          'if-block-uuid1': { type: 'If', id: 'if-block-uuid1', parentId: 'root', cond: 'bool-lit-uuid1', ifBlock: [], elseBlock: [] },
+          'bool-lit-uuid1': { type: 'BoolLit', id: 'bool-lit-uuid1', parentId: 'if-block-uuid1', b: true },
+          'if-block-uuid2': { type: 'If', id: 'if-block-uuid2', parentId: 'root', cond: 'bool-lit-uuid2', ifBlock: [], elseBlock: [] },
+          'bool-lit-uuid2': { type: 'BoolLit', id: 'bool-lit-uuid2', parentId: 'if-block-uuid2', b: false }
+        },
+        rootBlocks: ['if-block-uuid1', 'if-block-uuid2']
+      },
+      testIntsAndIfs: {
+        blocks: {
+          'intplus-block': { type: 'IntPlus', id: 'intplus-block', parentId: 'root', v1: 'int-left', v2: 'int-right' },
+          'int-left':  { type: 'IntLit', id: 'int-left',  parentId: 'intplus-block', v: 5 },
+          'int-right': { type: 'IntLit', id: 'int-right', parentId: 'intplus-block', v: 10 }
+        },
+        rootBlocks: ['intplus-block']
+      }
+    };
+
+    // ── trace rendering ──────────────────────────────────────────────────────
+
+    function formatTraceSummary(msg) {
+      switch (msg.event) {
+        case 'ArrayInsert':
+          return `Inserted <b style="color:#8aff4a">${msg.value}</b> at index <b style="color:#8aff4a">${msg.index}</b> into array <b style="color:#f90">${msg.arr}</b>`;
+        case 'ArrayRemove':
+          return `Removed element at index <b style="color:#ff6060">${msg.index}</b> from array <b style="color:#f90">${msg.arr}</b>`;
+        case 'ArraySwap':
+          return `Swapped indices <b style="color:#8aff4a">${msg.index1}</b> and <b style="color:#8aff4a">${msg.index2}</b> in array <b style="color:#f90">${msg.arr}</b>`;
+        case 'ArrayAssign':
+          return `Assigned new value to array <b style="color:#f90">${msg.arr}</b>`;
+        default:
+          return `Event: <b>${msg.event}</b>`;
+      }
+    }
+
+    function highlightIndices(msg) {
+      switch (msg.event) {
+        case 'ArrayInsert': return new Set([msg.index]);
+        case 'ArrayRemove': return new Set();  // element already gone
+        case 'ArraySwap':   return new Set([msg.index1, msg.index2]);
+        case 'ArrayAssign': return new Set();
+        default:            return new Set();
+      }
+    }
+
+    function renderArrViz(arrEnv, msg) {
+      if (!arrEnv || Object.keys(arrEnv).length === 0) {
+        return '<em style="color:#888">No arrays in environment</em>';
+      }
+      const focused = msg.arr;
+      const hl = highlightIndices(msg);
+      return Object.entries(arrEnv).map(([name, arr]) => {
+        const boxes = arr.map((v, i) => {
+          const cls = (name === focused && hl.has(i)) ? 'arr-box highlighted' : 'arr-box';
+          return `<span class="${cls}" title="[${i}]">${v}</span>`;
+        }).join('');
+        return `<div style="margin-bottom:4px"><span style="color:#f90;font-weight:bold;margin-right:6px">${name}</span>`
+             + `<span class="arr-viz">${boxes}</span></div>`;
+      }).join('');
+    }
+
+    function renderIntEnv(intEnv) {
+      const entries = Object.entries(intEnv || {});
+      if (entries.length === 0) return '';
+      const pairs = entries.map(([k, v]) => `<b>${k}</b> = ${v}`).join(' &nbsp; ');
+      return `<div class="env-row">int vars: ${pairs}</div>`;
+    }
+
+    function showTrace(msg) {
+      traceSummaryEl.innerHTML = formatTraceSummary(msg);
+      traceArrVizEl.innerHTML  = renderArrViz(msg.arrEnv, msg);
+      traceIntEnvEl.innerHTML  = renderIntEnv(msg.intEnv);
+      traceDataEl.textContent  = JSON.stringify(msg, null, 2);
+      setRunning(true);
+    }
+
+    continueBtn.addEventListener('click', () => {
+      if (!socket || socket.readyState !== WebSocket.OPEN) return;
+      socket.send(JSON.stringify({ type: 'continue' }));
+      log('Sent: {"type":"continue"}');
+      setRunning(false);
+    });
+
+    // ── socket helpers ───────────────────────────────────────────────────────
+    function safeSend(obj) {
+      if (!socket || socket.readyState !== WebSocket.OPEN) {
+        log('Cannot send: socket is not open.');
+        return;
+      }
+      const message = JSON.stringify(obj);
+      socket.send(message);
+      log(`Sent: ${message}`);
+    }
+
+    function readPayloadWithKind() {
+      let payload;
+      try {
+        payload = JSON.parse(payloadJsonEl.value);
+      } catch (error) {
+        log(`Invalid JSON payload: ${error.message}`);
+        return null;
+      }
+      payload.kind = kindEl.value;
+      return payload;
+    }
+
+    // ── init ─────────────────────────────────────────────────────────────────
+    populateExamples();
+    loadSelectedExample();
+
+    loadExampleBtn.addEventListener('click', () => {
+      loadSelectedExample();
+      log(`Loaded example: ${exampleEl.value}`);
+    });
+
+    // ── connect ──────────────────────────────────────────────────────────────
+    connectBtn.addEventListener('click', () => {
+      const url = wsUrlEl.value.trim();
+      if (!url) { log('Please provide a websocket URL.'); return; }
+
+      socket = new WebSocket(url);
+      statusEl.textContent = 'Status: Connecting...';
+
+      socket.addEventListener('open', () => {
+        setConnected(true);
+        safeSend({ type: 'connect', clientId: clientIdEl.value.trim() || 'browser-client' });
+      });
+
+      socket.addEventListener('message', (event) => {
+        let msg;
+        try { msg = JSON.parse(event.data); } catch { msg = null; }
+
+        if (msg && msg.type === 'trace') {
+          log(`Trace event: ${msg.event} on arr "${msg.arr ?? '?'}" — paused, waiting for continue`);
+          showTrace(msg);
+        } else {
+          log(`Received: ${event.data}`);
+          if (msg && msg.type === 'ran') {
+            setRunning(false);
+          }
+        }
+      });
+
+      socket.addEventListener('error', () => { log('WebSocket error.'); });
+
+      socket.addEventListener('close', () => {
+        setConnected(false);
+        socket = null;
+        log('Connection closed.');
+      });
+    });
+
+    // ── actions ──────────────────────────────────────────────────────────────
+    parseBtn.addEventListener('click', () => {
+      const payload = readPayloadWithKind();
+      if (!payload) return;
+      safeSend({ type: 'command', action: 'parseAst', payload });
+    });
+
+    runBtn.addEventListener('click', () => {
+      const payload = readPayloadWithKind();
+      if (!payload) return;
+      safeSend({ type: 'command', action: 'run', payload });
+    });
+
+    closeBtn.addEventListener('click', () => { if (socket) socket.close(); });
+  </script>
+</body>
+</html>
+

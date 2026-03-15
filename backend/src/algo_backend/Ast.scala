@@ -4,8 +4,12 @@ object Ast {
 
   type Id = String
 
+  abstract class AstNode
 
-  abstract sealed class IntType
+
+
+
+  abstract sealed class IntType extends AstNode
 
   case class IntLit(v: Int) extends IntType
 
@@ -26,7 +30,7 @@ object Ast {
 
   case class IntVarLit(id: Id) extends IntVar
 
-  case class IntVarListLookup(id: Id, index: Int) extends IntVar
+  case class IntVarListLookup(id: Id, index: IntType) extends IntVar
 
 
   abstract sealed class BoolType
@@ -54,7 +58,7 @@ object Ast {
   case class BoolNot(b: BoolType) extends BoolType
 
 
-  abstract sealed class ArrayType
+  abstract sealed class ArrayType extends AstNode
 
   case class ArrayLit(values: List[Int]) extends ArrayType
 
@@ -66,11 +70,13 @@ object Ast {
 
 
 
-  abstract sealed class Statement
+  abstract sealed class Statement extends AstNode
 
   case class IntAssign(variable: IntVar, value: IntType) extends Statement
 
   case class BoolAssign(variable: BoolVar, value: BoolType) extends Statement
+
+  case class ArrayAssign(variable: ArrayVar, value: ArrayType) extends Statement
 
   case class If(cond: BoolType, thenBlock: Scope, elseBlock: Scope) extends Statement
 
@@ -78,17 +84,25 @@ object Ast {
 
   //case class For(varDecl: IntAssign, cond: Bool, update: IntAssign, body: Block)
   //case class ForEach(ArrayType)
-  case class Swap(a: IntVar, b: IntVar) extends Statement
+  case class Swap(var a: IntVar, var b: IntVar) extends Statement
 
   case class ArrayInsert(arr: ArrayType, value: IntType, index: IntType) extends Statement
   case class ArrayRemove(arr: ArrayType, index: IntType) extends Statement
 
+  case class Scope(statements: List[Statement])
 
-  class Scope(statements: List[Statement], env: Env)
+  case class IntRef(read: () => Int, write: Int => Unit)
 
 
   class Env(var intEnv: Map[Id, Int], var boolEnv: Map[Id, Boolean], var arrEnv: Map[Id, List[Int]], val parent_env: Option[Env]) {
   }
 
 
+  abstract class TraceType
+  case class TraceArrAssign_A(value: List[Int], arr: Id) extends TraceType
+  case class TraceArrSwap(index1: Int, index2: Int, arr: Id) extends TraceType
+  case class TraceArrayInsert(index: Int, value: Int, arr: Id) extends TraceType
+  case class TraceArrayRemove(index: Int, arr: Id) extends TraceType
+  case class TraceArrayConcat(arr1: Id, arr2: Id) extends TraceType
+  case class NoTrace() extends TraceType
 }

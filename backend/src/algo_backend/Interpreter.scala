@@ -7,12 +7,14 @@ import Ast.*
   */
 object Interpreter {
 
+
+
   def eval(v: IntType, env: Env): Int = v match {
     case IntLit(v: Int) => v
     case IntVarLit(id: Id) => lookupInt(id, env)
-    case IntVarListLookup(id: Id, index: Int) =>
+    case IntVarListLookup(id: Id, index: IntType) =>
       val array: List[Int] = lookupArr(id, env)
-      array(index)
+      array(eval(index, env))
     case IntPlus(v1: IntType, v2: IntType) => eval(v1, env) + eval(v2, env)
     case IntMinus(v1: IntType, v2: IntType) => eval(v1, env) - eval(v2, env)
     case IntMult(v1: IntType, v2: IntType) => eval(v1, env) * eval(v2, env)
@@ -47,16 +49,61 @@ object Interpreter {
   }
 
   def eval(s: Statement, env: Env): Unit = s match {
-    case IntAssign(variable, value) => ???
-    case BoolAssign(variable, value) => ???
-    case If(cond, thenBlock, elseBlock) => ???
-    case While(cond, body) => ???
-    case Swap(a, b) => ???
-    case ArrayInsert(arr, value, index) => ???
-    case ArrayRemove(arr, index) => ???
+    case IntAssign(variable, value) => setInt(getId(variable), eval(value, env), env)
+    case BoolAssign(variable, value) => setBool(variable.id, eval(value, env), env)
+    case ArrayAssign(variable, value) =>
+      setArr(variable.id, eval(value, env), env)
+      if (variable.id == "A") trace(TraceArrAssign_A(eval(value, env), variable.id), None, env)
+    case If(cond, thenBlock, elseBlock) => if (eval(cond, env)) eval(thenBlock, env) else eval(elseBlock, env)
+    case While(cond, body) => while (eval(cond, env)) eval(body, env)
+    case Swap(a, b) =>
+      // Capture both references and values before writing, so swap behavior is stable.
+      val aRef = resolveIntRef(a, env)
+      val bRef = resolveIntRef(b, env)
+      val aValue = aRef.read()
+      val bValue = bRef.read()
+      aRef.write(bValue)
+      bRef.write(aValue)
+      if (a.isInstanceOf[IntVarListLookup] && b.isInstanceOf[IntVarListLookup]) {
+        val aIndex = a.asInstanceOf[IntVarListLookup].index
+        val bIndex = b.asInstanceOf[IntVarListLookup].index
+        if (a.asInstanceOf[IntVarListLookup].id == b.asInstanceOf[IntVarListLookup].id) trace(TraceArrSwap(eval(a.asInstanceOf[IntVarListLookup].index, env), eval(b.asInstanceOf[IntVarListLookup].index, env), a.asInstanceOf[IntVarListLookup].id), None, env)
+      }
+    case ArrayInsert(arr, value, index) =>
+      arr match {
+        case ArrayVar(id) =>
+          val arrValue = lookupArr(id, env)
+          val indexValue = eval(index, env)
+          if (indexValue < 0 || indexValue > arrValue.length) {
+            throw InterpreterError(s"ArrayInsert index out of range: $indexValue")
+          }
+          setArr(id, arrValue.patch(indexValue, Seq(eval(value, env)), 0), env)
+          trace(TraceArrayInsert(indexValue, eval(value, env), id), None, env)
+        case _ =>
+          throw InterpreterError("ArrayInsert target must be an array variable")
+      }
+    case ArrayRemove(arr, index) =>
+      arr match {
+        case ArrayVar(id) =>
+          val arrValue = lookupArr(id, env)
+          val indexValue = eval(index, env)
+          if (indexValue < 0 || indexValue >= arrValue.length) {
+            throw InterpreterError(s"ArrayRemove index out of range: $indexValue")
+          }
+          setArr(id, arrValue.patch(indexValue, Seq(), 1), env)
+          trace(TraceArrayRemove(indexValue, id), None, env)
+        case _ =>
+          throw InterpreterError("ArrayRemove target must be an array variable")
+      }
   }
 
-  def eval(s: Scope, env: Env): Unit = ???
+  def eval(s: Scope, env: Env): Unit = {
+    var env1 = Env(Map(), Map(), Map(), Some(env))
+    for (statement <- s.statements) {
+      eval(statement, env1)
+    }
+    // env is automatically the one the program knows about in the end
+  }
 
 
   def lookupInt(id: Id, env: Env): Int = {
@@ -114,12 +161,130 @@ object Interpreter {
   }
 
 
+  def setInt(id: Id, value: Int, env: Env): Unit = {
+    var env1: Option[Env] = Some(env)
+    var running = true
+    while (running) {
+      env1 match {
+        case Some(env2) =>
+          env2.intEnv.get(id) match {
+            case Some(_) =>
+              env2.intEnv = env2.intEnv.updated(id, value)
+              running = false
+            case None => env1 = env2.parent_env
+          }
+        case None =>
+          // Variable not declared anywhere yet — create it in the immediate env
+          env.intEnv = env.intEnv + (id -> value)
+          running = false
+      }
+    }
+  }
+
+  def setBool(id: Id, value: Boolean, env: Env): Unit = {
+    var env1: Option[Env] = Some(env)
+    var running = true
+    while (running) {
+      env1 match {
+        case Some(env2) =>
+          env2.boolEnv.get(id) match {
+            case Some(_) =>
+              env2.boolEnv = env2.boolEnv.updated(id, value)
+              running = false
+            case None => env1 = env2.parent_env
+          }
+        case None =>
+          env.boolEnv = env.boolEnv + (id -> value)
+          running = false
+      }
+    }
+  }
+
+  def setArr(id: Id, value: List[Int], env: Env): Unit = {
+    var env1: Option[Env] = Some(env)
+    var running = true
+    while (running) {
+      env1 match {
+        case Some(env2) =>
+          env2.arrEnv.get(id) match {
+            case Some(_) =>
+              env2.arrEnv = env2.arrEnv.updated(id, value)
+              running = false
+            case None => env1 = env2.parent_env
+          }
+        case None =>
+          env.arrEnv = env.arrEnv + (id -> value)
+          running = false
+      }
+    }
+  }
+
+  def getId(idExp: IntVar): Id = {
+    idExp match {
+      case IntVarLit(id) => id
+      case IntVarListLookup(id, index) => throw InterpreterError("Wtf are u doing? Assignment side lookup in list? What da helly")
+    }
+  }
+
+  private def resolveIntRef(v: IntVar, env: Env): IntRef = v match {
+    case IntVarLit(id) =>
+      IntRef(
+        () => lookupInt(id, env),
+        value => setInt(id, value, env)
+      )
+    case IntVarListLookup(id, indexExp) =>
+      val index = eval(indexExp, env)
+      IntRef(
+        () => {
+          val arr = lookupArr(id, env)
+          arr(index)
+        },
+        value => {
+          val arr = lookupArr(id, env)
+          setArr(id, arr.updated(index, value), env)
+        }
+      )
+  }
+
+
+
+  // Thread-local trace handler injected by the WebSocket server during a `run` command.
+  // When set, trace() calls the handler (which sends JSON to the frontend and blocks for "continue").
+  // When not set, trace() falls back to println.
+  private val activeTraceHandler: ThreadLocal[Option[(TraceType, Option[String], Env) => Unit]] =
+    new ThreadLocal[Option[(TraceType, Option[String], Env) => Unit]] {
+      override def initialValue(): Option[(TraceType, Option[String], Env) => Unit] = None
+    }
+
+  /** Install a trace handler for the duration of [block], then restore the previous one. */
+  def withTraceHandler[A](handler: (TraceType, Option[String], Env) => Unit)(block: => A): A = {
+    val prev = activeTraceHandler.get()
+    activeTraceHandler.set(Some(handler))
+    try block
+    finally activeTraceHandler.set(prev)
+  }
 
   /**
-    * Sends message to frontend.
+    * Sends message to frontend (or prints to stdout when no handler is installed).
     */
-  def trace(msg: => String): Unit =
-      println(msg)
+  def trace(t: => TraceType, astId: Option[String], env: Env): Unit = {
+    activeTraceHandler.get() match {
+      case Some(handler) => handler(t, astId, env)
+      case None =>
+        t match {
+          case TraceArrAssign_A(value, id) =>
+            println(s"Trace: Assigned array $id to value $value")
+          case TraceArrSwap(index1, index2, arrId) =>
+            println(s"Trace: Array $arrId swapped indices $index1 and $index2")
+          case TraceArrayInsert(index, value, arrId) =>
+            println(s"Trace: Array $arrId inserted value $value at index $index")
+          case TraceArrayRemove(index, arrId) =>
+            println(s"Trace: Array $arrId removed value at index $index")
+          case _ =>
+            println(s"Trace: Unrecognized trace type")
+        }
+    }
+  }
 
   /**
     * Exception thrown in case of runtime errors.
