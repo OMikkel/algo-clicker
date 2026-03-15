@@ -14,7 +14,8 @@ export default function BaseBlock({
 	preview?: boolean;
 	disabled?: boolean;
 }) {
-	if (!block) return <div className="p-2 bg-red-500">No block found</div>;
+	if (!block)
+		return <div className="p-2 bg-red-500 text-amber-200">No block found</div>;
 	const config = BLOCK_REGISTRY[block.type];
 
 	if (!config)

@@ -1,11 +1,12 @@
 import { useGlobalStateContext } from "../context/GlobalStateContext";
 import { cn } from "../utils/cn";
-import DropZone from "./DropZone";
+import BlockSelector from "./BlockSelector";
 import { PlayIcon, RefreshCwIcon, Trash2Icon } from "lucide-react";
 
 export default function Workbench() {
 	const { rootBlocks, resetApplication, rerunApplication, runApplication } =
 		useGlobalStateContext();
+	const initialProgramBlockId = rootBlocks[0];
 
 	return (
 		<div className="w-full bg-gray-800 p-4 rounded-md">
@@ -23,12 +24,15 @@ export default function Workbench() {
 					</Button>
 				</div>
 			</div>
-			<DropZone
-				id="root"
-				slot="root"
-				blockIds={rootBlocks}
-				className="w-full h-full bg-gray-800 p-4 rounded-md border-none"
-			/>
+			<div className="w-full h-full bg-gray-800 p-4 rounded-md border-none">
+				{initialProgramBlockId ? (
+					<BlockSelector id={initialProgramBlockId} />
+				) : (
+					<p className="text-gray-400 italic text-sm">
+						Initial program block is missing.
+					</p>
+				)}
+			</div>
 		</div>
 	);
 }

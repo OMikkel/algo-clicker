@@ -311,7 +311,7 @@ export default function GlobalStateProvider({
 			return;
 		}
 
-		setDraggedBlockId(source.id);
+		setDraggedBlockId(String(source.id).replace("draggable:", ""));
 	};
 
 	const updateBlockData = (blockId: string, newData: Partial<Block>) => {
@@ -352,54 +352,167 @@ export default function GlobalStateProvider({
 
 		const sourceId = String(source.id).replace("draggable:", "");
 		const rawTargetId = String(target.id).replace("container:", "");
-		const targetSlot = target.data?.slot; // "cond", "v1", "ifBlock", etc.
+		const rawTargetSlot = target.data?.slot; // "cond", "v1", "ifBlock", etc.
 
-		// 1. Determine if we are dropping into the root or a block slot
-		const targetBlockId =
-			targetSlot === "root"
-				? "root"
-				: rawTargetId.replace(`-${targetSlot}`, "");
+		if (!rawTargetSlot) {
+			console.warn("Drag end event missing target slot:", event);
+			return;
+		}
 
 		updateBlockState((prev) => {
 			const nextBlocks = { ...prev.blocks };
 			let nextRoot = [...prev.rootBlocks];
-			const movingBlock = { ...nextBlocks[sourceId] };
-			const oldParentId = movingBlock.parentId;
+			const initialProgramBlockId = nextRoot.find(
+				(id) => nextBlocks[id]?.type === "InitialProgramWithList_A",
+			);
+
+			if (!initialProgramBlockId) {
+				console.warn("InitialProgramWithList_A root block is missing.");
+				return prev;
+			}
+
+			// Root drops are interpreted as drops into InitialProgramWithList_A.solution
+			const targetSlot =
+				rawTargetSlot === "root" ? "solution" : String(rawTargetSlot);
+			const targetBlockId =
+				rawTargetSlot === "root"
+					? initialProgramBlockId
+					: rawTargetId.endsWith(`-${targetSlot}`)
+						? rawTargetId.slice(0, -`-${targetSlot}`.length)
+						: rawTargetId;
+
+			if (!nextBlocks[sourceId]) {
+				console.warn("Source block not found during drag end:", sourceId);
+				return prev;
+			}
+
+			const addToRoot = (id: BlockId) => {
+				if (!nextRoot.includes(id)) {
+					nextRoot.push(id);
+				}
+			};
+
+			const removeFromRoot = (id: BlockId) => {
+				nextRoot = nextRoot.filter((rootId) => rootId !== id);
+			};
+
+			const removeChildReferenceFromParent = (
+				parentId: BlockId | "root" | undefined,
+				childId: BlockId,
+				preferredSlot?: string,
+			) => {
+				if (!parentId || parentId === "root" || !nextBlocks[parentId]) return;
+
+				const parent = { ...nextBlocks[parentId] };
+				let wasRemoved = false;
+
+				if (preferredSlot) {
+					const slotValue = parent[preferredSlot];
+					if (Array.isArray(slotValue)) {
+						const filtered = slotValue.filter((id) => id !== childId);
+						if (filtered.length !== slotValue.length) {
+							parent[preferredSlot] = filtered;
+							wasRemoved = true;
+						}
+					} else if (slotValue === childId) {
+						parent[preferredSlot] = null;
+						wasRemoved = true;
+					}
+				}
+
+				if (!wasRemoved) {
+					Object.entries(parent).forEach(([key, value]) => {
+						if (
+							["id", "type", "parentId", "parentSlot", "color"].includes(key)
+						) {
+							return;
+						}
+
+						if (Array.isArray(value)) {
+							const filtered = value.filter((id) => id !== childId);
+							if (filtered.length !== value.length) {
+								parent[key] = filtered;
+								wasRemoved = true;
+							}
+						} else if (value === childId) {
+							parent[key] = null;
+							wasRemoved = true;
+						}
+					});
+				}
+
+				if (wasRemoved) {
+					nextBlocks[parentId] = parent;
+				}
+			};
+
+			const attachChildToTarget = (
+				childId: BlockId,
+				parentId: BlockId | "root",
+				slot: string,
+			) => {
+				if (!nextBlocks[childId]) return false;
+
+				if (slot === "root" || parentId === "root") {
+					nextBlocks[childId] = {
+						...nextBlocks[childId],
+						parentId: "root",
+						parentSlot: "root",
+					};
+					addToRoot(childId);
+					return true;
+				}
+
+				if (!nextBlocks[parentId]) {
+					console.warn("Target parent not found during drag end:", parentId);
+					return false;
+				}
+
+				const parent = { ...nextBlocks[parentId] };
+				const currentSlotValue = parent[slot];
+
+				if (Array.isArray(currentSlotValue)) {
+					if (!currentSlotValue.includes(childId)) {
+						parent[slot] = [...currentSlotValue, childId];
+					}
+				} else {
+					if (currentSlotValue && currentSlotValue !== childId) {
+						// Keep single-slot invariants strict when occupied by a live block,
+						// but allow replacing stale dangling references.
+						if (nextBlocks[currentSlotValue]) {
+							return false;
+						}
+					}
+					parent[slot] = childId;
+				}
+
+				nextBlocks[parentId] = parent;
+				nextBlocks[childId] = {
+					...nextBlocks[childId],
+					parentId,
+					parentSlot: slot,
+				};
+				removeFromRoot(childId);
+
+				return true;
+			};
 
 			const isTemplate = sourceId.startsWith("template:");
 			if (isTemplate) {
 				// If dragging from template, create a new block instance instead of moving the template itself
-				const templateType = movingBlock.type;
-				const newBlock = createBlockFromAST(templateType, "", targetBlockId);
-				console.log("newBlock:", newBlock);
-
-				if (targetSlot && targetSlot == "root") {
-					nextRoot.push(newBlock.id);
-				} else {
-					const newParent = { ...nextBlocks[targetBlockId] };
-					const isArraySlot = Array.isArray(newParent[targetSlot]);
-
-					if (isArraySlot) {
-						newParent[targetSlot] = [
-							...(newParent[targetSlot] || []),
-							newBlock.id,
-						];
-					} else {
-						// SWAPPING LOGIC: If a single-item slot (like 'cond') is full, kick the old block to root
-						if (newParent[targetSlot]) {
-							const displacedId = newParent[targetSlot];
-							nextBlocks[displacedId] = {
-								...nextBlocks[displacedId],
-								parentId: "root",
-							};
-							nextRoot.push(displacedId);
-						}
-						newParent[targetSlot] = newBlock.id;
-					}
-					nextBlocks[targetBlockId] = newParent;
-				}
-
+				const templateType = nextBlocks[sourceId].type;
+				const newBlock = createBlockFromAST(templateType, "", "root") as Block;
 				nextBlocks[newBlock.id] = newBlock;
+
+				const didAttach = attachChildToTarget(
+					newBlock.id,
+					targetBlockId,
+					targetSlot,
+				);
+				if (!didAttach) {
+					delete nextBlocks[newBlock.id];
+					return prev;
+				}
 
 				console.log(
 					"Created new block from template:",
@@ -418,54 +531,28 @@ export default function GlobalStateProvider({
 				};
 			}
 
-			// --- STEP 1: REMOVE FROM OLD LOCATION ---
-			if (!isTemplate) {
-				if (oldParentId === "root") {
-					nextRoot = nextRoot.filter((id) => id !== sourceId);
-				} else if (nextBlocks[oldParentId]) {
-					const oldParent = { ...nextBlocks[oldParentId] };
-					const slotValue = oldParent[movingBlock.parentSlot];
+			const movingBlock = nextBlocks[sourceId];
 
-					if (Array.isArray(slotValue)) {
-						oldParent[movingBlock.parentSlot] = slotValue.filter(
-							(id) => id !== sourceId,
-						);
-					} else {
-						oldParent[movingBlock.parentSlot] = null;
-					}
-					nextBlocks[oldParentId] = oldParent;
-				}
-			}
-
-			// --- STEP 2: ADD TO NEW LOCATION ---
-			movingBlock.parentId = targetBlockId;
-			movingBlock.parentSlot = targetSlot; // Track which slot it's in for easier removal later
-
-			if (targetSlot === "root") {
-				nextRoot.push(sourceId);
+			// STEP 1: Detach from old location
+			if (movingBlock.parentId === "root") {
+				removeFromRoot(sourceId);
 			} else {
-				const newParent = { ...nextBlocks[targetBlockId] };
-				const isArraySlot = Array.isArray(newParent[targetSlot]);
-
-				if (isArraySlot) {
-					newParent[targetSlot] = [...(newParent[targetSlot] || []), sourceId];
-				} else {
-					// SWAPPING LOGIC: If a single-item slot (like 'cond') is full, kick the old block to root
-					if (newParent[targetSlot]) {
-						const displacedId = newParent[targetSlot];
-						nextBlocks[displacedId] = {
-							...nextBlocks[displacedId],
-							parentId: "root",
-							parentSlot: "root",
-						};
-						nextRoot.push(displacedId);
-					}
-					newParent[targetSlot] = sourceId;
-				}
-				nextBlocks[targetBlockId] = newParent;
+				removeChildReferenceFromParent(
+					movingBlock.parentId,
+					sourceId,
+					movingBlock.parentSlot,
+				);
 			}
 
-			nextBlocks[sourceId] = movingBlock;
+			// STEP 2: Attach to new location (with swap-to-root for single slots)
+			const didAttach = attachChildToTarget(
+				sourceId,
+				targetBlockId,
+				targetSlot,
+			);
+			if (!didAttach) {
+				return prev;
+			}
 
 			return {
 				...prev,

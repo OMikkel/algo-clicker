@@ -31,11 +31,19 @@ export default function DropZone({
 		disabled: preview, // Disable dropping when in preview mode
 	});
 
-	const draggedBlock = draggedBlockId ? blocks[draggedBlockId] : null;
+	const normalizedDraggedBlockId = draggedBlockId
+		? String(draggedBlockId).replace("draggable:", "")
+		: null;
+	const draggedBlock = normalizedDraggedBlockId
+		? blocks[normalizedDraggedBlockId]
+		: null;
+	const existingBlockIds = (blockIds ?? []).filter(
+		(blockId) => !!blocks[blockId],
+	);
 
 	// 1. Check if max elements reached
 	const isMaxElementsReached =
-		maxElements !== undefined && (blockIds?.length ?? 0) >= maxElements;
+		maxElements !== undefined && existingBlockIds.length >= maxElements;
 
 	// 2. Check if the type is accepted
 	const acceptsDraggedBlock = !!(
@@ -50,7 +58,7 @@ export default function DropZone({
 	const targetBlockId =
 		targetSlot === "root" ? "root" : id.replace(`-${targetSlot}`, "");
 
-	const isSelf = draggedBlockId === targetBlockId;
+	const isSelf = normalizedDraggedBlockId === targetBlockId;
 
 	// 3. Final canDrop
 	const canDrop =
@@ -79,7 +87,7 @@ export default function DropZone({
 			)}
 		>
 			{/* 1. Existing Blocks */}
-			{blockIds?.map((blockId) => (
+			{existingBlockIds.map((blockId) => (
 				<BlockSelector key={blockId} id={blockId} preview={preview} />
 			))}
 
@@ -93,7 +101,7 @@ export default function DropZone({
 			)}
 
 			{/* 3. Empty State */}
-			{(!blockIds || blockIds.length === 0) && !canDrop && (
+			{existingBlockIds.length === 0 && !canDrop && (
 				<p className="text-gray-500 italic text-sm">Drop blocks here</p>
 			)}
 		</div>
