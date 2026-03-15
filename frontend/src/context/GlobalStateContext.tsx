@@ -44,8 +44,8 @@ const initialBlockState = (
 		[InitialProgramWithList_A_ID]: {
 			type: "InitialProgramWithList_A",
 			id: InitialProgramWithList_A_ID,
-			parentId: null,
-			decl_A: null,
+			parentId: "root",
+			decl_A: ArrayAssign_Initial_ID,
 			solution: null,
 		},
 		[ArrayAssign_Initial_ID]: {
