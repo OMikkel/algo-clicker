@@ -176,7 +176,7 @@ const operations = {
 				[3, new Vec2D(200, 600)],
 				[4, eyeFocusDefault],
 			],
-		})
+		}
 	},
 	"compare": (left: DrawableElement,right: DrawableElement) => {
 		const leftPos = left.position
