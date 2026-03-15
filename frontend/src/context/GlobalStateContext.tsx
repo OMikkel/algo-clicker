@@ -126,11 +126,11 @@ export default function GlobalStateProvider({
 				case "error":
 					console.warn("Error from server:", payload.message);
 
-					const causingBlockIdMatch = payload.message.match(/Block '(\w+)'/);
-					console.log("Regex match result:", causingBlockIdMatch);
-					if (showAlert) {
-						alert(`Technical details:\n${payload.message}`);
-					}
+					// const causingBlockIdMatch = payload.message.match(/Block '(\w+)'/);
+					// console.log("Regex match result:", causingBlockIdMatch);
+					// if (showAlert) {
+					// 	alert(`Technical details:\n${payload.message}`);
+					// }
 
 					break;
 				// case "parsed":
@@ -218,7 +218,12 @@ export default function GlobalStateProvider({
 		) {
 			localStorage.removeItem("algo-playground-storage");
 			setBlockState(
-				initialBlockState(InitialProgramWithList_A_ID, ArrayAssign_Initial_ID),
+				initialBlockState(
+					InitialProgramWithList_A_ID,
+					ArrayAssign_Initial_ID,
+					ArrayVar_Initial_ID,
+					ArrayLit_Initial_ID,
+				),
 			);
 		}
 	};
@@ -226,12 +231,71 @@ export default function GlobalStateProvider({
 	const deleteBlock = (blockId: string) => {
 		updateBlockState((prev) => {
 			const nextBlocks = { ...prev.blocks };
-			const nextRoot = prev.rootBlocks.filter((id) => id !== blockId);
-			delete nextBlocks[blockId];
+			const blockToDelete = nextBlocks[blockId];
+
+			if (!blockToDelete) return prev;
+
+			// --- STEP 1: Identify all descendants to delete ---
+			const idsToDelete = new Set<string>();
+
+			const collectChildIds = (id: string) => {
+				idsToDelete.add(id);
+				const block = nextBlocks[id];
+				if (!block) return;
+
+				// Iterate through all properties of the block to find child IDs
+				// We exclude metadata like 'id', 'type', 'parentId', 'parentSlot'
+				Object.entries(block).forEach(([key, value]) => {
+					if (["id", "type", "parentId", "parentSlot", "color"].includes(key))
+						return;
+
+					if (typeof value === "string" && nextBlocks[value]) {
+						// Single slot (e.g., cond: "uuid")
+						collectChildIds(value);
+					} else if (Array.isArray(value)) {
+						// List slot (e.g., statements: ["uuid1", "uuid2"])
+						value.forEach((childId) => {
+							if (typeof childId === "string" && nextBlocks[childId]) {
+								collectChildIds(childId);
+							}
+						});
+					}
+				});
+			};
+
+			collectChildIds(blockId);
+
+			// --- STEP 2: Clean up the Parent's reference ---
+			const parentId = blockToDelete.parentId;
+			const parentSlot = blockToDelete.parentSlot;
+
+			if (parentId && parentId !== "root" && nextBlocks[parentId]) {
+				const parent = { ...nextBlocks[parentId] };
+				const currentSlotValue = parent[parentSlot];
+
+				if (Array.isArray(currentSlotValue)) {
+					parent[parentSlot] = currentSlotValue.filter((id) => id !== blockId);
+				} else {
+					parent[parentSlot] = null;
+				}
+				nextBlocks[parentId] = parent;
+			}
+
+			// --- STEP 3: Perform the wipe ---
+			// Remove from rootBlocks
+			const nextRoot = prev.rootBlocks.filter((id) => !idsToDelete.has(id));
+
+			// Delete all identified blocks from the dictionary
+			idsToDelete.forEach((id) => {
+				delete nextBlocks[id];
+			});
+
+			console.log(`Recursively deleted ${idsToDelete.size} blocks.`);
+
 			return {
+				...prev,
 				blocks: nextBlocks,
 				rootBlocks: nextRoot,
-				templates: prev.templates,
 			};
 		});
 	};

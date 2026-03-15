@@ -13,12 +13,11 @@ export default function BlockSelector({
 	disabled?: boolean;
 }) {
 	const { blocks } = useGlobalStateContext();
-	const selectedBlock = blocks[id];
-	console.log("BlockSelector found block:", selectedBlock);
+	const block = blocks[id];
+	if (!block) return null; // Safety first!
+	console.log("BlockSelector found block:", block);
 
-	if (selectedBlock.type === "InitialProgramWithList_A")
-		return <InitialBlock block={selectedBlock} />;
-	return (
-		<BaseBlock block={selectedBlock} preview={preview} disabled={disabled} />
-	);
+	if (block.type === "InitialProgramWithList_A")
+		return <InitialBlock block={block} />;
+	return <BaseBlock block={block} preview={preview} disabled={disabled} />;
 }
