@@ -13,7 +13,7 @@ function Visualization({ width, height }: VisualizationProps) {
 	const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
 	const startTime = performance.now();
-	const animation = animations.testAnimation;
+	
 
 	useEffect(() => {
 		const canvas = canvasRef.current;
@@ -24,6 +24,9 @@ function Visualization({ width, height }: VisualizationProps) {
 
 		const env = example_env;
 		const objs = generateEnvironmentDrawables(env, ctx, height, width);
+
+		const elements: elementData[] = [{xPos: 50, yPos: 600}]
+		const animation = getAnimation("liftAnimation", elements);
 
 		const render = () => {
 			const time = (performance.now() - startTime) / 1000;
@@ -36,6 +39,7 @@ function Visualization({ width, height }: VisualizationProps) {
 
 			const rHandX = keyframe(time, animation.rHandX);
 			const rHandY = keyframe(time, animation.rHandY);
+			//const elementsGrab = 
 
 			drawAlgo.drawArmsAndHands(width / 2, 300, rHandX, rHandY, 300, 500, ctx);
 
@@ -63,21 +67,40 @@ function keyframe(time: number, frames: [number, number][]) {
   return frames[frames.length - 1][1];
 }
 
-const animations = {
-  testAnimation: {
-	rHandX: [
-		[0, 100],
-		[1, 300],
-		[2, 200],
-		[3, 100],
-	],
-	rHandY: [
-		[0, 500],
-		[1, 300],
-		[2, 200],
-		[3, 500],
-	],
-  }
+interface elementData {
+	xPos: number;
+	yPos: number;
+}
+
+function getAnimation(operation: string, elements: elementData[]) {
+	const rHandXDefault = 100;
+	const rHandYDefault = 500;
+
+	switch (operation) {
+		case "liftAnimation": {
+			return {
+				rHandX: [
+					[0, rHandXDefault],
+					[1, elements[0].xPos],
+					[2, 50],
+					[3, elements[0].xPos],
+					[4, rHandXDefault],
+				],
+				rHandY: [
+					[0, rHandYDefault],
+					[1, elements[0].yPos],
+					[2, 400],
+					[3, elements[0].yPos],
+					[4, rHandYDefault],
+				],
+				elementsGrab: [
+					[1, "inRightHand"],
+					[3, "free"],
+				],
+			}
+		}
+			
+	}
 };
 
 export default Visualization;
