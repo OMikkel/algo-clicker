@@ -33,7 +33,7 @@ object JSONServer {
 
   case class Trace(event: String, data: Map[String, Any], intEnv: Map[String, Int], boolEnv: Map[String, Boolean], arrEnv: Map[String, List[Int]], env: Map[String, Any]) extends ServerMessage
 
-  case class Error(message: String) extends ServerMessage
+  case class Error(message: String, id: String, slot: String) extends ServerMessage
 
   final case class ServerHandle(stop: () => Unit)
 
@@ -115,10 +115,14 @@ object JSONServer {
         case Trace(event, data, intEnv, boolEnv, arrEnv, env) =>
         (Map[String, Any]("type" -> "trace", "event" -> event) ++ data) +
           ("intEnv" -> intEnv) + ("boolEnv" -> boolEnv) + ("arrEnv" -> arrEnv) + ("env" -> env)
-      case Error(message) => Map("type" -> "error", "message" -> message)
+      case Error(message, id, slot) =>
+        Map("type" -> "error", "message" -> message, "id" -> id, "slot" -> slot)
     }
     stringifyJson(map)
   }
+
+  private def mkError(message: String, id: String = "", slot: String = ""): Error =
+    Error(message, id, slot)
 
   private def acceptLoop(server: ServerSocket): Unit = {
     try {
@@ -160,12 +164,12 @@ object JSONServer {
               decoded match {
               case Right(Command("run", cmdPayload)) => executeWithTracing(cmdPayload, in, out)
               case Right(msg) => route(msg)
-              case Left(err) => Error(err)
+              case Left(err) => mkError(err)
             }
             }
             writeFrame(out, OpText, encodeServerMessage(response).getBytes(StandardCharsets.UTF_8))
           case Some((_, _)) =>
-            writeFrame(out, OpText, encodeServerMessage(Error("Unsupported websocket opcode")).getBytes(StandardCharsets.UTF_8))
+            writeFrame(out, OpText, encodeServerMessage(mkError("Unsupported websocket opcode")).getBytes(StandardCharsets.UTF_8))
         }
       }
     } catch {
@@ -182,7 +186,7 @@ object JSONServer {
     case Command(action, payload) =>
       action match {
         case "parseAst" =>
-          parseAstPayload(payload).fold(err => Error(err), parsed => Parsed(parsed.kind, parsed.value.toString))
+          parseAstPayload(payload).fold(err => mkError(err), parsed => Parsed(parsed.kind, parsed.value.toString))
         case _ => Ack(action)
       }
   }
@@ -216,7 +220,7 @@ object JSONServer {
       .flatMap { parsed =>
         Interpreter.withTraceHandler(traceHandler)(executeParsedAst(parsed, env))
       }
-      .fold(err => Error(err), identity)
+      .fold(err => mkError(err), identity)
   }
 
   private def buildTraceMessage(t: Ast.TraceType, env: Ast.Env): Trace = {
@@ -338,6 +342,9 @@ object JSONServer {
         case v: Ast.IntType => Interpreter.eval(v, env).toString
         case v: Ast.BoolType => Interpreter.eval(v, env).toString
         case v: Ast.ArrayType => Interpreter.eval(v, env).toString
+        case v: Ast.InitialProgramWithList_A =>
+          Interpreter.eval(v, env)
+          "unit"
         case v: Ast.Statement =>
           Interpreter.eval(v, env)
           "unit"

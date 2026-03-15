@@ -11,6 +11,7 @@ object AstBlockStateParser {
   private final case class ParsedBool(value: BoolType) extends ParsedNode
   private final case class ParsedArray(value: ArrayType) extends ParsedNode
   private final case class ParsedStatement(value: Statement) extends ParsedNode
+  private final case class ParsedProgram(value: InitialProgramWithList_A) extends ParsedNode
 
   def parsePayload(kind: String, payload: Map[String, Any]): Either[String, AstTextParser.ParsedAst] = {
     val normalizedKind = kind.trim.toLowerCase match {
@@ -42,6 +43,8 @@ object AstBlockStateParser {
         singleRoot(rootBlocks).flatMap(root => parseArrayById(root, ctx)).map(v => AstTextParser.ParsedAst("array", v))
       case "statement" =>
         singleRoot(rootBlocks).flatMap(root => parseStatementById(root, ctx)).map(v => AstTextParser.ParsedAst("statement", v))
+      case "program" =>
+        singleRoot(rootBlocks).flatMap(root => parseProgramById(root, ctx)).map(v => AstTextParser.ParsedAst("program", v))
       case "scope" =>
         parseScopeFromRoots(rootBlocks, ctx).map(v => AstTextParser.ParsedAst("scope", v))
       case "auto" =>
@@ -51,6 +54,7 @@ object AstBlockStateParser {
             case ParsedBool(v) => AstTextParser.ParsedAst("bool", v)
             case ParsedArray(v) => AstTextParser.ParsedAst("array", v)
             case ParsedStatement(v) => AstTextParser.ParsedAst("statement", v)
+            case ParsedProgram(v) => AstTextParser.ParsedAst("program", v)
           }
         } else {
           parseScopeFromRoots(rootBlocks, ctx).map(v => AstTextParser.ParsedAst("scope", v))
@@ -128,6 +132,15 @@ object AstBlockStateParser {
           v2 <- refAsInt(block, "v2", id, ctx)
         } yield ParsedInt(IntMod(v1, v2))
 
+      case "IntVarLit" =>
+        stringField(block, "ident", id).map(v => ParsedInt(IntVarLit(v)))
+
+      case "IntVarListLookup" =>
+        for {
+          ident <- stringField(block, "ident", id)
+          index <- refAsInt(block, "index", id, ctx)
+        } yield ParsedInt(IntVarListLookup(ident, index))
+
       case "BoolLit" =>
         boolField(block, "b", id).map(v => ParsedBool(BoolLit(v)))
 
@@ -191,6 +204,43 @@ object AstBlockStateParser {
           elseScope <- parseStatementList(elseIds, ctx, "If", "elseBlock")
         } yield ParsedStatement(If(cond, ifScope, elseScope))
 
+      case "While" =>
+        for {
+          cond <- refAsBool(block, "cond", id, ctx)
+          bodyIds <- stringListField(block, "body", id)
+          bodyScope <- parseStatementList(bodyIds, ctx, "While", "body")
+        } yield ParsedStatement(While(cond, bodyScope))
+
+      case "IntAssign" =>
+        for {
+          variable <- refAsIntVar(block, "variable", id, ctx)
+          value <- refAsInt(block, "value", id, ctx)
+        } yield ParsedStatement(IntAssign(variable, value))
+
+      case "Swap" =>
+        for {
+          a <- refAsIntVar(block, "a", id, ctx)
+          b <- refAsIntVar(block, "b", id, ctx)
+        } yield ParsedStatement(Swap(a, b))
+
+      case "ArrayLit" =>
+        intListField(block, "values", id).map(v => ParsedArray(ArrayLit(v)))
+
+      case "ArrayVar" =>
+        stringField(block, "ident", id).map(v => ParsedArray(ArrayVar(v)))
+
+      case "ArrayAssign" =>
+        for {
+          variable <- refAsArrayVar(block, "variable", id, ctx)
+          value <- refAsArray(block, "value", id, ctx)
+        } yield ParsedStatement(ArrayAssign(variable, value))
+
+      case "InitialProgramWithList_A" =>
+        for {
+          declA <- refAsArrayAssign(block, "decl_A", id, ctx)
+          solution <- refAsStatement(block, "solution", id, ctx)
+        } yield ParsedProgram(InitialProgramWithList_A(declA, solution))
+
       case other => Left(s"Unsupported block type '$other' for block '$id'")
     }
   }
@@ -225,12 +275,54 @@ object AstBlockStateParser {
     }
   }
 
+  private def parseProgramById(id: String, ctx: ParseContext): Either[String, InitialProgramWithList_A] = {
+    parseNodeById(id, ctx).flatMap {
+      case ParsedProgram(value) => Right(value)
+      case other => Left(s"Block '$id' is not a program node (found ${nodeKind(other)})")
+    }
+  }
+
   private def refAsInt(block: Map[String, Any], field: String, ownerId: String, ctx: ParseContext): Either[String, IntType] = {
     stringField(block, field, ownerId).flatMap(id => parseIntById(id, ctx))
   }
 
   private def refAsBool(block: Map[String, Any], field: String, ownerId: String, ctx: ParseContext): Either[String, BoolType] = {
     stringField(block, field, ownerId).flatMap(id => parseBoolById(id, ctx))
+  }
+
+  private def refAsArray(block: Map[String, Any], field: String, ownerId: String, ctx: ParseContext): Either[String, ArrayType] = {
+    stringField(block, field, ownerId).flatMap(id => parseArrayById(id, ctx))
+  }
+
+  private def refAsIntVar(block: Map[String, Any], field: String, ownerId: String, ctx: ParseContext): Either[String, IntVar] = {
+    stringField(block, field, ownerId).flatMap { id =>
+      parseIntById(id, ctx).flatMap {
+        case v: IntVar => Right(v)
+        case _ => Left(s"Block '$ownerId' field '$field' must reference an IntVar block")
+      }
+    }
+  }
+
+  private def refAsStatement(block: Map[String, Any], field: String, ownerId: String, ctx: ParseContext): Either[String, Statement] = {
+    stringField(block, field, ownerId).flatMap(id => parseStatementById(id, ctx))
+  }
+
+  private def refAsArrayVar(block: Map[String, Any], field: String, ownerId: String, ctx: ParseContext): Either[String, ArrayVar] = {
+    stringField(block, field, ownerId).flatMap { id =>
+      parseArrayById(id, ctx).flatMap {
+        case v: ArrayVar => Right(v)
+        case _ => Left(s"Block '$ownerId' field '$field' must reference an ArrayVar block")
+      }
+    }
+  }
+
+  private def refAsArrayAssign(block: Map[String, Any], field: String, ownerId: String, ctx: ParseContext): Either[String, ArrayAssign] = {
+    stringField(block, field, ownerId).flatMap { id =>
+      parseStatementById(id, ctx).flatMap {
+        case v: ArrayAssign => Right(v)
+        case _ => Left(s"Block '$ownerId' field '$field' must reference an ArrayAssign block")
+      }
+    }
   }
 
   private def intField(block: Map[String, Any], field: String, ownerId: String): Either[String, Int] = {
@@ -275,6 +367,20 @@ object AstBlockStateParser {
     }
   }
 
+  private def intListField(block: Map[String, Any], field: String, ownerId: String): Either[String, List[Int]] = {
+    block.get(field) match {
+      case Some(values: List[?]) =>
+        traverse(values.zipWithIndex) {
+          case (v: Int, _) => Right(v)
+          case (v: Long, idx) if v >= Int.MinValue && v <= Int.MaxValue => Right(v.toInt)
+          case (v: Double, idx) if v.isWhole && v >= Int.MinValue && v <= Int.MaxValue => Right(v.toInt)
+          case (_, idx) => Left(s"Block '$ownerId' field '$field' item $idx must be an integer")
+        }
+      case Some(_) => Left(s"Block '$ownerId' field '$field' must be an array of integers")
+      case None => Left(s"Block '$ownerId' is missing field '$field'")
+    }
+  }
+
   private def readBlocks(payload: Map[String, Any]): Either[String, Map[String, Map[String, Any]]] = {
     payload.get("blocks") match {
       case Some(blocksMap: Map[?, ?]) =>
@@ -312,6 +418,7 @@ object AstBlockStateParser {
     case ParsedBool(_) => "bool"
     case ParsedArray(_) => "array"
     case ParsedStatement(_) => "statement"
+    case ParsedProgram(_) => "program"
   }
 
   private def traverse[A, B](items: List[A])(f: A => Either[String, B]): Either[String, List[B]] = {

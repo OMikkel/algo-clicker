@@ -8,6 +8,16 @@ import Ast.*
 object Interpreter {
 
 
+  def eval(program: InitialProgramWithList_A, env: Env): Unit = {
+    eval(program.decl_A, env)
+    program.solution match {
+      case v: Statement =>
+        eval(v, env)
+      case other => throw InterpreterError(s"Unsupported InitialProgramWithList_A solution node: ${other.getClass.getSimpleName}")
+    }
+  }
+
+
 
   def eval(v: IntType, env: Env): Int = v match {
     case IntLit(v: Int) => v

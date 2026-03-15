@@ -125,6 +125,21 @@ object TestInterpreter {
     test(Scope(List(IntAssign(IntVarLit("a"), IntLit(2)))))
     // NOTE: Implicitly tested in statement tests <3
 
+    // InitialProgramWithList_A tests
+    env = Env(Map(), Map(), Map(), None)
+    eval(
+      InitialProgramWithList_A(
+        ArrayAssign(ArrayVar("A"), ArrayLit(List(3, 1))),
+        If(
+          BoolGreater(IntVarListLookup("A", IntLit(0)), IntVarListLookup("A", IntLit(1))),
+          Scope(List(Swap(IntVarListLookup("A", IntLit(0)), IntVarListLookup("A", IntLit(1))))),
+          Scope(List())
+        )
+      ),
+      env
+    )
+    assert(lookupArr("A", env) == List(1, 3))
+
 
 
     println("😝😎😅😵‍💫🧌😁✅✅✅    ALL TESTS PASSED!!!!!!    ✅✅✅😝😎😅😵‍💫🧌😁")

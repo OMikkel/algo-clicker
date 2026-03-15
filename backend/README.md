@@ -122,6 +122,34 @@ Example run response:
 }
 ```
 
+## InitialProgramWithList_A JSON Example
+
+The server now supports block-state JSON for `InitialProgramWithList_A`.
+
+```json
+{
+  "kind": "auto",
+  "blocks": {
+    "program-root": { "type": "InitialProgramWithList_A", "id": "program-root", "parentId": "root", "decl_A": "decl-a", "solution": "if-sort" },
+    "decl-a": { "type": "ArrayAssign", "id": "decl-a", "parentId": "program-root", "variable": "array-a", "value": "array-value" },
+    "array-a": { "type": "ArrayVar", "id": "array-a", "parentId": "decl-a", "ident": "A" },
+    "array-value": { "type": "ArrayLit", "id": "array-value", "parentId": "decl-a", "values": [3, 1] },
+    "if-sort": { "type": "If", "id": "if-sort", "parentId": "program-root", "cond": "gt-0-1", "ifBlock": ["swap-0-1"], "elseBlock": [] },
+    "gt-0-1": { "type": "BoolGreater", "id": "gt-0-1", "parentId": "if-sort", "v1": "a-idx-0", "v2": "a-idx-1" },
+    "a-idx-0": { "type": "IntVarListLookup", "id": "a-idx-0", "parentId": "gt-0-1", "ident": "A", "index": "lit-0" },
+    "a-idx-1": { "type": "IntVarListLookup", "id": "a-idx-1", "parentId": "gt-0-1", "ident": "A", "index": "lit-1" },
+    "lit-0": { "type": "IntLit", "id": "lit-0", "parentId": "a-idx-0", "v": 0 },
+    "lit-1": { "type": "IntLit", "id": "lit-1", "parentId": "a-idx-1", "v": 1 },
+    "swap-0-1": { "type": "Swap", "id": "swap-0-1", "parentId": "if-sort", "a": "swap-a", "b": "swap-b" },
+    "swap-a": { "type": "IntVarListLookup", "id": "swap-a", "parentId": "swap-0-1", "ident": "A", "index": "lit-0" },
+    "swap-b": { "type": "IntVarListLookup", "id": "swap-b", "parentId": "swap-0-1", "ident": "A", "index": "lit-1" }
+  },
+  "rootBlocks": ["program-root"]
+}
+```
+
+For this payload, parse returns kind `program`, and `run` executes `decl_A` first and then the sorting solution statement (result `value` is `"unit"`). The final `arrEnv.A` is `[1, 3]`.
+
 ## Parser harness
 
 A tiny parser test harness is available at:

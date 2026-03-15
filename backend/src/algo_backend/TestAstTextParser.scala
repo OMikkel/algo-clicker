@@ -67,6 +67,78 @@ object TestAstTextParser {
       "rootBlocks" -> List("intplus-block")
     )
 
+    val initialProgramBlockState: Map[String, Any] = Map(
+      "blocks" -> Map(
+        "program-root" -> Map(
+          "type" -> "InitialProgramWithList_A",
+          "id" -> "program-root",
+          "parentId" -> "root",
+          "decl_A" -> "decl-a",
+          "solution" -> "if-sort"
+        ),
+        "decl-a" -> Map(
+          "type" -> "ArrayAssign",
+          "id" -> "decl-a",
+          "parentId" -> "program-root",
+          "variable" -> "array-a",
+          "value" -> "array-value"
+        ),
+        "array-a" -> Map(
+          "type" -> "ArrayVar",
+          "id" -> "array-a",
+          "parentId" -> "decl-a",
+          "ident" -> "A"
+        ),
+        "array-value" -> Map(
+          "type" -> "ArrayLit",
+          "id" -> "array-value",
+          "parentId" -> "decl-a",
+          "values" -> List(3, 1)
+        ),
+        "if-sort" -> Map(
+          "type" -> "If",
+          "id" -> "if-sort",
+          "parentId" -> "program-root",
+          "cond" -> "gt-0-1",
+          "ifBlock" -> List("swap-0-1"),
+          "elseBlock" -> List.empty[Any]
+        ),
+        "gt-0-1" -> Map(
+          "type" -> "BoolGreater",
+          "id" -> "gt-0-1",
+          "parentId" -> "if-sort",
+          "v1" -> "a-idx-0",
+          "v2" -> "a-idx-1"
+        ),
+        "a-idx-0" -> Map(
+          "type" -> "IntVarListLookup",
+          "id" -> "a-idx-0",
+          "parentId" -> "gt-0-1",
+          "ident" -> "A",
+          "index" -> "lit-0"
+        ),
+        "a-idx-1" -> Map(
+          "type" -> "IntVarListLookup",
+          "id" -> "a-idx-1",
+          "parentId" -> "gt-0-1",
+          "ident" -> "A",
+          "index" -> "lit-1"
+        ),
+        "lit-0" -> Map("type" -> "IntLit", "id" -> "lit-0", "parentId" -> "a-idx-0", "v" -> 0),
+        "lit-1" -> Map("type" -> "IntLit", "id" -> "lit-1", "parentId" -> "a-idx-1", "v" -> 1),
+        "swap-0-1" -> Map(
+          "type" -> "Swap",
+          "id" -> "swap-0-1",
+          "parentId" -> "if-sort",
+          "a" -> "swap-a",
+          "b" -> "swap-b"
+        ),
+        "swap-a" -> Map("type" -> "IntVarListLookup", "id" -> "swap-a", "parentId" -> "swap-0-1", "ident" -> "A", "index" -> "lit-0"),
+        "swap-b" -> Map("type" -> "IntVarListLookup", "id" -> "swap-b", "parentId" -> "swap-0-1", "ident" -> "A", "index" -> "lit-1")
+      ),
+      "rootBlocks" -> List("program-root")
+    )
+
     val parsedIf = AstBlockStateParser.parsePayload("auto", ifBlockState)
     assert(parsedIf.exists(_.kind == "statement"))
     assert(parsedIf.exists(_.value == If(BoolLit(true), Scope(List.empty), Scope(List.empty))))
@@ -80,6 +152,20 @@ object TestAstTextParser {
       ifBlockState.updated("rootBlocks", List("if-block-uuid1", "if-block-uuid1"))
     )
     assert(parsedScope.exists(_.kind == "scope"))
+
+    val parsedProgramAuto = AstBlockStateParser.parsePayload("auto", initialProgramBlockState)
+    assert(parsedProgramAuto.exists(_.kind == "program"))
+    assert(parsedProgramAuto.exists(_.value == InitialProgramWithList_A(
+      ArrayAssign(ArrayVar("A"), ArrayLit(List(3, 1))),
+      If(
+        BoolGreater(IntVarListLookup("A", IntLit(0)), IntVarListLookup("A", IntLit(1))),
+        Scope(List(Swap(IntVarListLookup("A", IntLit(0)), IntVarListLookup("A", IntLit(1))))),
+        Scope(List.empty)
+      )
+    )))
+
+    val parsedProgramExplicit = AstBlockStateParser.parsePayload("program", initialProgramBlockState)
+    assert(parsedProgramExplicit.exists(_.kind == "program"))
 
     println("AstTextParser tests passed")
   }
