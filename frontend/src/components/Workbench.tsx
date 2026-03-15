@@ -73,7 +73,7 @@ export default function Workbench() {
 				</div>
 				<div className="h-px bg-white/20 my-2" />
 			</div>
-			<div className="w-full h-full bg-gray-800 p-4 rounded-md border-none">
+			<div className="w-full bg-gray-800 p-4 rounded-md border-none">
 				{initialProgramBlockId ? (
 					<BlockSelector id={initialProgramBlockId} />
 				) : (
