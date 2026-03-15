@@ -3,15 +3,18 @@ import React, { useEffect, useRef, useState } from "react";
 import { BLOCK_REGISTRY } from "../constants/AstConditions";
 import type { Block, BlockId, Blocks } from "../types/blocks";
 import { createBlockFromAST } from "../utils/objects";
+import { emptyEnvironment, type Environment } from "../data-model";
 
 export type BlockState = {
 	blocks: Blocks;
 	rootBlocks: BlockId[];
 	templates: BlockId[];
+	env: Environment;
 };
 
 type GlobalState = {
 	blocks: Blocks;
+	env: Environment;
 	rootBlocks: BlockId[];
 	templates: BlockId[];
 	draggedBlockId: BlockId | null;
@@ -69,7 +72,7 @@ const initialBlockState = (
 		},
 	},
 	rootBlocks: [InitialProgramWithList_A_ID],
-
+	env : emptyEnvironment(),
 	templates: ASTs.map((ast) => ast.id),
 });
 
@@ -123,6 +126,9 @@ export default function GlobalStateProvider({
 			const payload = JSON.parse(event.data);
 			// Handle server responses here (e.g., visualization updates)
 			switch (payload.type) {
+				case "trace": 
+					updateBlockState(p => ({...p,env: payload})) 
+					break;
 				case "error":
 					console.warn("Error from server:", payload.message);
 
@@ -218,12 +224,7 @@ export default function GlobalStateProvider({
 		) {
 			localStorage.removeItem("algo-playground-storage");
 			setBlockState(
-				initialBlockState(
-					InitialProgramWithList_A_ID,
-					ArrayAssign_Initial_ID,
-					ArrayVar_Initial_ID,
-					ArrayLit_Initial_ID,
-				),
+				initialBlockState(InitialProgramWithList_A_ID, ArrayAssign_Initial_ID, ArrayVar_Initial_ID, ArrayLit_Initial_ID),
 			);
 		}
 	};
@@ -402,15 +403,15 @@ export default function GlobalStateProvider({
 					newBlock,
 					"and updated state:",
 					{
+						templates: prev.templates,
 						blocks: nextBlocks,
 						rootBlocks: nextRoot,
-						templates: prev.templates,
 					},
 				);
 				return {
+					...prev,
 					blocks: nextBlocks,
 					rootBlocks: nextRoot,
-					templates: prev.templates,
 				};
 			}
 
@@ -464,9 +465,9 @@ export default function GlobalStateProvider({
 			nextBlocks[sourceId] = movingBlock;
 
 			return {
+				...prev,
 				blocks: nextBlocks,
 				rootBlocks: nextRoot,
-				templates: prev.templates,
 			};
 		});
 	};
@@ -485,6 +486,7 @@ export default function GlobalStateProvider({
 				runApplication,
 				rerunApplication,
 				resetApplication,
+				env: blockState.env
 			}}
 		>
 			<DragDropProvider onDragEnd={onDragEnd} onDragStart={onDragStart}>

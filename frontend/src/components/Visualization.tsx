@@ -1,10 +1,9 @@
 import { useRef, useEffect, useState } from "react";
 import drawAlgo from "../drawing/algo";
-
-import { example_env } from "../example-env";
 import { generateEnvironmentDrawables } from "../drawing/environments";
 import type { DrawableElement } from "../drawing/DrawableElement";
 import { Vec2D } from "../drawing/Vec2D";
+import { useGlobalStateContext } from "../context/GlobalStateContext";
 
 interface VisualizationProps {
 	width: number;
@@ -13,21 +12,21 @@ interface VisualizationProps {
 
 function Visualization({ width, height }: VisualizationProps) {
 	const canvasRef = useRef<HTMLCanvasElement | null>(null);
-
 	const startTime = performance.now();
-
+	const {env} = useGlobalStateContext()
+	
 	useEffect(() => {
 		const canvas = canvasRef.current;
 		if (!canvas) return;
-
+		
 		const ctx = canvas.getContext("2d");
 		if (!ctx) return;
 
-		const env = example_env;
 		const objs = generateEnvironmentDrawables(env, ctx, height, width);
 
-		const elements: DrawableElement[] = objs;
-		const animation = getAnimation("liftAnimation", elements);
+		const [leftObj,rightObj] = [objs[1],objs[4]]
+		
+		const animation = leftObj && rightObj ? operations.swap(leftObj,rightObj) : null
 
 		const render = () => {
 			const time = (performance.now() - startTime) / 1000;
@@ -37,22 +36,25 @@ function Visualization({ width, height }: VisualizationProps) {
 			drawAlgo.drawHeadAndBody(width / 2, 300, ctx);
 
 			objs.forEach((v) => v.draw());
-
-			// const rHandX = keyframe(time, animation.rHandX);
-			// const rHandY = keyframe(time, animation.rHandY);
-			const rhand = keyframe(time, animation.rHandPos);
-			const leftObj = keyframe(time, animation.leftObj);
-			const rightObj = keyframe(time, animation.rightObj);
-			objs[0].setPosition(leftObj);
-			objs[2].setPosition(rightObj);
+			let rhand = rHandPosDefault
+			let lhand = lHandPosDefault
+			if (animation)
+			{
+				rhand = keyframe(time, animation.rHandPos);
+				lhand = keyframe(time, animation.lHandPos);
+				const leftObjFrame = keyframe(time, animation.leftObj);
+				const rightObjFrame = keyframe(time, animation.rightObj);
+				leftObj.setPosition(leftObjFrame);
+				rightObj.setPosition(rightObjFrame);
+			}
 
 			drawAlgo.drawArmsAndHands(
 				width / 2,
 				300,
+				lhand.X(),
+				lhand.Y(),
 				rhand.X(),
 				rhand.Y(),
-				300,
-				500,
 				ctx,
 			);
 
@@ -78,12 +80,55 @@ function keyframe(time: number, frames: [number, Vec2D][]) {
 
 	return frames[frames.length - 1][1];
 }
+const lHandGrabOffset = new Vec2D(-15,35)
+const lHandPosDefault = new Vec2D(100, 500);
+const rHandGrabOffset = new Vec2D(-15,35)
+const rHandPosDefault = new Vec2D(300, 500);
+
+const operations = {
+	"swap": (left: DrawableElement,right: DrawableElement) => {
+		const leftPos = left.position
+		const rightPos = right.position
+		const viaLeftPoint = lHandPosDefault.slerp(leftPos, 0.3);
+		const viaRightPoint = rHandPosDefault.slerp(rightPos, 0.3);
+		return ({
+				lHandPos: [
+					[0, lHandPosDefault],
+					[1, leftPos.subtract(lHandGrabOffset).translateX(left.size.X()/2)],
+					[2, viaLeftPoint.subtract(lHandGrabOffset).translateX(left.size.X()/2)],
+					[3, rightPos.subtract(lHandGrabOffset).translateX(left.size.X()/2)],
+					[4, lHandPosDefault],
+				],
+				leftObj: [
+					[0, leftPos],
+					[1, leftPos],
+					[2, viaLeftPoint],
+					[3, rightPos],
+					[4, rightPos],
+				],
+				rHandPos: [
+					[0, rHandPosDefault],
+					[1, rightPos.subtract(rHandGrabOffset)],
+					[2, viaRightPoint.subtract(rHandGrabOffset)],
+					[3, leftPos.subtract(rHandGrabOffset)],
+					[4, rHandPosDefault],
+				],
+				rightObj: [
+					[0, rightPos],
+					[1, rightPos],
+					[2, viaRightPoint],
+					[3, leftPos],
+					[4, leftPos],
+					[5, leftPos],
+				],
+			})}
+}
 
 function getAnimation(operation: string, elements: DrawableElement[]) {
-	const rHandPosDefault = new Vec2D(100, 500);
+	
 	const obj0pos = elements[0].position;
 	const obj3pos = elements[2].position;
-	const viaLiftPoint = new Vec2D(50, 400);
+	
 	switch (operation) {
 		case "liftAnimation": {
 			return {

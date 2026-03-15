@@ -29,7 +29,7 @@ export const generateEnvironmentDrawables = (env: Environment, ctx: CanvasRender
             const list = new ArrayList(key, [], prev ? prev.position.translateX(prev.size.X() + col_padding) : root.translateX(col_padding), ctx)
             const elements = value.map(value => new ArrayElement(value, new Vec2D(0, 0), ctx))
             list.setElements(elements)
-            acc.push(list)
+            acc.push(list,...elements)
             return [list, acc]
         }, [null, []])
     }
@@ -40,7 +40,8 @@ export const generateEnvironmentDrawables = (env: Environment, ctx: CanvasRender
     const bools = res[1]
     res = drawArray(env.arrEnv, last_element?.top_right || root)
     const arrayLists = res[1]
-    const objs = [...ints, ...bools, ...arrayLists]
+
+    const objs = [...ints, ...bools, ...arrayLists, ]
     if (env.parentEnv) return objs.concat(generateEnvironmentDrawables(env.parentEnv, ctx, height, _width, root.translateY(last_element ? last_element.size.Y() + row_padding : 0)))
     return objs
 }
