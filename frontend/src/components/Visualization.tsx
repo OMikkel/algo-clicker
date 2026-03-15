@@ -247,20 +247,30 @@ const operations: {
 				[3, new Vec2D(200, 600)],
 				[4, eyeFocusDefault],
 			],
-		}
+		};
 	},
 	compare: (left: DrawableElement, right: DrawableElement): SwapAnimation => {
-		const leftPos = left.position
-		const rightPos = right.position
+		const leftPos = left.position;
+		const rightPos = right.position;
 		const leftComparePoint = new Vec2D(30, 370);
 		const rightComparePoint = new Vec2D(300, 370);
 		return {
 			lHandPos: [
 				[0, lHandPosDefault],
-				[1, leftPos.subtract(lHandGrabOffset).translateX(left.size.X()/2)],
-				[2, leftComparePoint.subtract(lHandGrabOffset).translateX(left.size.X()/2)],
-				[5, leftComparePoint.subtract(lHandGrabOffset).translateX(left.size.X()/2)],
-				[6, leftPos.subtract(lHandGrabOffset).translateX(left.size.X()/2)],
+				[1, leftPos.subtract(lHandGrabOffset).translateX(left.size.X() / 2)],
+				[
+					2,
+					leftComparePoint
+						.subtract(lHandGrabOffset)
+						.translateX(left.size.X() / 2),
+				],
+				[
+					5,
+					leftComparePoint
+						.subtract(lHandGrabOffset)
+						.translateX(left.size.X() / 2),
+				],
+				[6, leftPos.subtract(lHandGrabOffset).translateX(left.size.X() / 2)],
 				[7, lHandPosDefault],
 			],
 			leftObj: [
@@ -271,10 +281,20 @@ const operations: {
 			],
 			rHandPos: [
 				[0, rHandPosDefault],
-				[1, rightPos.subtract(lHandGrabOffset).translateX(right.size.X()/2)],
-				[2, rightComparePoint.subtract(lHandGrabOffset).translateX(right.size.X()/2)],
-				[5, rightComparePoint.subtract(lHandGrabOffset).translateX(right.size.X()/2)],
-				[6, rightPos.subtract(lHandGrabOffset).translateX(right.size.X()/2)],
+				[1, rightPos.subtract(lHandGrabOffset).translateX(right.size.X() / 2)],
+				[
+					2,
+					rightComparePoint
+						.subtract(lHandGrabOffset)
+						.translateX(right.size.X() / 2),
+				],
+				[
+					5,
+					rightComparePoint
+						.subtract(lHandGrabOffset)
+						.translateX(right.size.X() / 2),
+				],
+				[6, rightPos.subtract(lHandGrabOffset).translateX(right.size.X() / 2)],
 				[7, rHandPosDefault],
 			],
 			rightObj: [
@@ -293,9 +313,9 @@ const operations: {
 				[5, leftComparePoint],
 				[5.5, eyeFocusDefault],
 			],
-		}
+		};
 	},
-}
+};
 
 function getTraceObjects(
 	objs: DrawableElement[],
