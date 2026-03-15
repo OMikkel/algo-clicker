@@ -1,24 +1,18 @@
 import { useDroppable } from "@dnd-kit/react";
 import { useGlobalStateContext } from "../context/GlobalStateContext";
 import type { BlockId } from "../types/blocks";
-import BlockSelector from "./BlockSelector";
 import { cn } from "../utils/cn";
-import { useMemo } from "react";
+import BlockSelector from "./BlockSelector";
 
 type Props = {
 	id: string;
-
 	maxElements?: number;
-
 	slot: string;
-
 	accepts?: string[];
-
 	blockIds: BlockId[] | null;
-
 	children?: React.ReactNode;
-
 	className?: string;
+	preview?: boolean;
 };
 
 export default function DropZone({
@@ -28,11 +22,13 @@ export default function DropZone({
 	accepts,
 	blockIds,
 	className,
+	preview = false,
 }: Props) {
 	const { blocks, draggedBlockId } = useGlobalStateContext();
 	const { ref, isDropTarget } = useDroppable({
 		id: id,
 		data: { slot, accepts, maxElements },
+		disabled: preview, // Disable dropping when in preview mode
 	});
 
 	const draggedBlock = draggedBlockId ? blocks[draggedBlockId] : null;

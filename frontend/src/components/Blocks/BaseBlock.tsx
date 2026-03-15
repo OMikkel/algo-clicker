@@ -5,7 +5,13 @@ import DraggableElement from "../DraggableElement";
 import DropZone from "../DropZone";
 import BlockDataEditor from "./BlockDataEditor";
 
-export default function BaseBlock({ block }: { block: BaseBlock | null }) {
+export default function BaseBlock({
+	block,
+	preview,
+}: {
+	block: BaseBlock | null;
+	preview?: boolean;
+}) {
 	console.log("Rendering block:", block);
 	if (!block) return <div className="p-2 bg-red-500">No block found</div>;
 	const config = BLOCK_REGISTRY[block.type];
@@ -21,6 +27,7 @@ export default function BaseBlock({ block }: { block: BaseBlock | null }) {
 				"min-w-48 p-3 rounded shadow-lg border-2 border-white/10",
 				config.color,
 			)}
+			preview={preview}
 		>
 			<div className="flex flex-col gap-3">
 				<div className="flex justify-between items-center border-b border-white/20 pb-1">
@@ -31,10 +38,11 @@ export default function BaseBlock({ block }: { block: BaseBlock | null }) {
 
 				{config.slots.map((slot) => (
 					<div key={slot.id} className="flex flex-col gap-1">
-						<label className="text-[10px] font-mono opacity-80">
+						<label className="text-[10px] font-mono opacity-80 text-left">
 							{slot.label}
 						</label>
 						<DropZone
+							preview={preview}
 							id={`${block.id}-${slot.id}`}
 							slot={slot.id}
 							accepts={slot.accepts}

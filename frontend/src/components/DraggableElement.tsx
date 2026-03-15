@@ -8,6 +8,7 @@ type Props = {
 	type: string;
 	children?: React.ReactNode;
 	className?: string;
+	preview?: boolean;
 };
 
 export default function DraggableElement({
@@ -15,6 +16,7 @@ export default function DraggableElement({
 	type,
 	children,
 	className,
+	preview = false,
 }: Props) {
 	const { deleteBlock } = useGlobalStateContext();
 	const { ref, isDragging } = useDraggable({ id, type });
@@ -35,9 +37,14 @@ export default function DraggableElement({
 
 			{/* Content area: clicks here won't trigger the IfBlock drag */}
 			<div className="flex-1">{children}</div>
-			<button className="flex cursor-grab active:cursor-grabbing p-1 hover:bg-white/20 rounded h-min w-min">
-				<Trash2Icon className="w-4 h-4" />
-			</button>
+			{!preview && (
+				<button
+					className="flex cursor-grab active:cursor-grabbing p-1 hover:bg-white/20 rounded h-min w-min"
+					onClick={() => deleteBlock(id)}
+				>
+					<Trash2Icon className="w-4 h-4" />
+				</button>
+			)}
 		</div>
 	);
 }

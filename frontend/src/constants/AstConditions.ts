@@ -1,9 +1,16 @@
-const IntType = ["IntLit", "IntVarLit", "IntPlus", "IntMinus", "IntMult", "IntDiv", "IntMod", "IntArrayLength"];
+const IntType = ["IntLit", "IntVarLit", "IntPlus", "IntMinus", "IntMult", "IntDiv", "IntMod", "IntArrayLength", "IntVarListLookup"];
 const BoolType = ["BoolLit", "BoolVar", "BoolGreater", "BoolGreaterEq", "BoolLess", "BoolLessEq", "BoolEq", "BoolNeq", "BoolAnd", "BoolOr", "BoolNot"];
 const ArrayType = ["ArrayLit", "ArrayVar", "ArrayRange", "ArrayConcat"];
-const Statement = ["IntAssign", "BoolAssign", "If", "While", "Swap", "ArrayInsert", "ArrayRemove"];
+const Statement = ["IntAssign", "BoolAssign", "ArrayAssign", "If", "While", "Swap", "ArrayInsert", "ArrayRemove"];
 
 export type AST = { color: string, slots: any[] }
+
+export const BLOCK_GROUPS = {
+    Statements: ["If", "IntAssign", "BoolAssign", "ArrayAssign", "While", "Swap", "ArrayInsert", "ArrayRemove"],
+    IntOperations: ["IntLit", "IntVarLit", "IntVarListLookup", "IntPlus", "IntMinus", "IntMult", "IntDiv", "IntMod", "IntArrayLength"],
+    BoolOperations: ["BoolLit", "BoolVar", "BoolGreater", "BoolGreaterEq", "BoolLess", "BoolLessEq", "BoolEq", "BoolNeq", "BoolAnd", "BoolOr", "BoolNot"],
+    ArrayOperations: ["ArrayLit", "ArrayVar", "ArrayRange", "ArrayConcat"]
+}
 
 export const BLOCK_REGISTRY: Record<string, AST> = {
     // Statements
@@ -15,9 +22,12 @@ export const BLOCK_REGISTRY: Record<string, AST> = {
             { id: "elseBlock", label: "ELSE", accepts: Statement },
         ]
     },
-    BoolLit: {
-        color: "bg-green-500",
-        slots: []
+    While: {
+        color: "bg-blue-600",
+        slots: [
+            { id: "cond", label: "COND", accepts: BoolType, max: 1 },
+            { id: "body", label: "BODY", accepts: Statement },
+        ],
     },
     IntAssign: {
         color: "bg-purple-600",
@@ -26,6 +36,117 @@ export const BLOCK_REGISTRY: Record<string, AST> = {
             { id: "value", label: "Value", accepts: IntType, max: 1 },
         ]
     },
+    BoolAssign: {
+        color: "bg-purple-600",
+        slots: [
+            { id: "variable", label: "Variable", accepts: ["BoolVar"], max: 1 },
+            { id: "value", label: "Value", accepts: BoolType, max: 1 },
+        ]
+    },
+    ArrayAssign: {
+        color: "bg-purple-600",
+        slots: [
+            { id: "variable", label: "Variable", accepts: ["ArrayVar"], max: 1 },
+            { id: "value", label: "Value", accepts: ArrayType, max: 1 },
+        ]
+    },
+    Swap: {
+        color: "bg-blue-600",
+        slots: [
+            { id: "a", label: "First", accepts: ["IntVarLit"], max: 1 },
+            { id: "b", label: "Second", accepts: ["IntVarLit"], max: 1 },
+        ],
+    },
+    ArrayInsert: {
+        color: "bg-blue-600",
+        slots: [
+            { id: "arr", label: "Array", accepts: ArrayType, max: 1 },
+            { id: "value", label: "Value", accepts: IntType, max: 1 },
+            { id: "index", label: "Index", accepts: IntType, max: 1 },
+        ],
+    },
+    ArrayRemove: {
+        color: "bg-blue-600",
+        slots: [
+            { id: "arr", label: "Array", accepts: ArrayType, max: 1 },
+            { id: "index", label: "Index", accepts: IntType, max: 1 },
+        ],
+    },
+
+    // Bool Operations
+    BoolLit: {
+        color: "bg-green-500",
+        slots: []
+    },
+    BoolVar: {
+        color: "bg-green-400",
+        slots: [
+            { id: "ident", label: "Variable Id", accepts: ["Id"], max: 1 },
+        ],
+    },
+    BoolGreater: {
+        color: "bg-blue-500",
+        slots: [
+            { id: "v1", label: "Left", accepts: IntType, max: 1 },
+            { id: "v2", label: "Right", accepts: IntType, max: 1 },
+        ],
+    },
+    BoolGreaterEq: {
+        color: "bg-blue-500",
+        slots: [
+            { id: "v1", label: "Left", accepts: IntType, max: 1 },
+            { id: "v2", label: "Right", accepts: IntType, max: 1 },
+        ],
+    },
+    BoolLess: {
+        color: "bg-blue-500",
+        slots: [
+            { id: "v1", label: "Left", accepts: IntType, max: 1 },
+            { id: "v2", label: "Right", accepts: IntType, max: 1 },
+        ],
+    },
+    BoolLessEq: {
+        color: "bg-blue-500",
+        slots: [
+            { id: "v1", label: "Left", accepts: IntType, max: 1 },
+            { id: "v2", label: "Right", accepts: IntType, max: 1 },
+        ],
+    },
+    BoolEq: {
+        color: "bg-blue-500",
+        slots: [
+            { id: "v1", label: "Left", accepts: IntType, max: 1 },
+            { id: "v2", label: "Right", accepts: IntType, max: 1 },
+        ],
+    },
+    BoolNeq: {
+        color: "bg-blue-500",
+        slots: [
+            { id: "v1", label: "Left", accepts: IntType, max: 1 },
+            { id: "v2", label: "Right", accepts: IntType, max: 1 },
+        ],
+    },
+    BoolAnd: {
+        color: "bg-blue-500",
+        slots: [
+            { id: "b1", label: "Left", accepts: BoolType, max: 1 },
+            { id: "b2", label: "Right", accepts: BoolType, max: 1 },
+        ],
+    },
+    BoolOr: {
+        color: "bg-blue-500",
+        slots: [
+            { id: "b1", label: "Left", accepts: BoolType, max: 1 },
+            { id: "b2", label: "Right", accepts: BoolType, max: 1 },
+        ],
+    },
+    BoolNot: {
+        color: "bg-blue-500",
+        slots: [
+            { id: "b", label: "Value", accepts: BoolType, max: 1 },
+        ],
+    },
+
     // Int Operations
     IntLit: {
         color: "bg-purple-500",
@@ -37,6 +158,13 @@ export const BLOCK_REGISTRY: Record<string, AST> = {
             { id: "ident", label: "Variable Id", accepts: ["Id"], max: 1 }
         ]
     },
+    IntVarListLookup: {
+        color: "bg-purple-400",
+        slots: [
+            { id: "ident", label: "Variable Id", accepts: ["Id"], max: 1 },
+            { id: "index", label: "Index", accepts: IntType, max: 1 },
+        ],
+    },
     IntPlus: {
         color: "bg-blue-500",
         slots: [
@@ -44,7 +172,50 @@ export const BLOCK_REGISTRY: Record<string, AST> = {
             { id: "v2", label: "Right", accepts: IntType, max: 1 },
         ]
     },
+    IntMinus: {
+        color: "bg-blue-500",
+        slots: [
+            { id: "v1", label: "Left", accepts: IntType, max: 1 },
+            { id: "v2", label: "Right", accepts: IntType, max: 1 },
+        ]
+    },
+    IntMult: {
+        color: "bg-blue-500",
+        slots: [
+            { id: "v1", label: "Left", accepts: IntType, max: 1 },
+            { id: "v2", label: "Right", accepts: IntType, max: 1 },
+        ]
+    },
+    IntDiv: {
+        color: "bg-blue-500",
+        slots: [
+            { id: "v1", label: "Left", accepts: IntType, max: 1 },
+            { id: "v2", label: "Right", accepts: IntType, max: 1 },
+        ]
+    },
+    IntMod: {
+        color: "bg-blue-500",
+        slots: [
+            { id: "v1", label: "Left", accepts: IntType, max: 1 },
+            { id: "v2", label: "Right", accepts: IntType, max: 1 },
+        ]
+    },
+    IntArrayLength: {
+        color: "bg-blue-500",
+        slots: [
+            { id: "arr", label: "Array", accepts: ArrayType, max: 1 },
+        ],
+    },
+
     // Array Operations
+    ArrayLit: {
+        color: "bg-green-500",
+        slots: []
+    },
+    ArrayVar: {
+        color: "bg-purple-500",
+        slots: []
+    },
     ArrayRange: {
         color: "bg-green-600",
         slots: [
@@ -53,26 +224,13 @@ export const BLOCK_REGISTRY: Record<string, AST> = {
             { id: "endIndex", label: "To", accepts: IntType, max: 1 },
         ]
     },
-    ArrayAssign: {
-        color: "bg-purple-600",
+    ArrayConcat: {
+        color: "bg-green-600",
         slots: [
-            { id: "variable", label: "Variable", accepts: ["ArrayVar"], max: 1 },
-            { id: "value", label: "Value", accepts: ArrayType, max: 1 },
-        ]
+            { id: "a", label: "Left", accepts: ArrayType, max: 1 },
+            { id: "b", label: "Right", accepts: ArrayType, max: 1 },
+        ],
     },
-    ArrayVar: {
-        color: "bg-purple-500",
-        slots: [
-            { id: "ident", label: "Array Id", accepts: ["Id"], max: 1 }
-        ]
-    },
-    ArrayLit: {
-        color: "bg-green-500",
-        slots: [
-            { id: "values", label: "Values (comma-separated)", accepts: ["List[Int]"], max: 1 }
-        ]
-    }
-    // ... add others here ...
 };
 
 // package algo_backend
