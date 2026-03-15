@@ -12,6 +12,10 @@ const drawAlgo = {
         drawArm(algoXPos + 50, algoYPos + 95, 0, rArmXPos, rArmYPos, -Math.PI / 2, 10, ctx);
         drawHand(rArmXPos, rArmYPos, 30, ctx);
     },
+    // For testing
+    drawEyeFocusPoint: (eyeFocusX: number, eyeFocusY: number, ctx: CanvasRenderingContext2D) => {
+        drawCircle(eyeFocusX, eyeFocusY, 10, "yellow", ctx);
+    }
 }
 
 

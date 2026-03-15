@@ -33,10 +33,14 @@ function Visualization({ width, height }: VisualizationProps) {
 
 			ctx.clearRect(0, 0, width, height);
 
-			const eyeFocusX: number = 200;
-			const eyeFocusY: number = 500;
+			let eyeFocus: Vec2D = new Vec2D(200, 500);
 
-			drawAlgo.drawHeadAndBody(width / 2, 300, eyeFocusX, eyeFocusY, ctx);
+			if (animation)
+			{
+				eyeFocus = keyframe(time, animation.eyeFocus);
+			}
+
+			drawAlgo.drawHeadAndBody(width / 2, 300, eyeFocus.X(), eyeFocus.Y(), ctx);
 
 			objs.forEach((v) => v.draw());
 			let rhand = rHandPosDefault
@@ -60,6 +64,9 @@ function Visualization({ width, height }: VisualizationProps) {
 				rhand.Y(),
 				ctx,
 			);
+
+			// Must only be run when testing:
+			//drawAlgo.drawEyeFocusPoint(eyeFocus.X(), eyeFocus.Y(), ctx);
 
 			requestAnimationFrame(render);
 		};
@@ -123,6 +130,13 @@ const operations = {
 					[3, leftPos],
 					[4, leftPos],
 					[5, leftPos],
+				],
+				eyeFocus: [
+					[0, new Vec2D(200, 500)],
+					[1, new Vec2D(200, 600)],
+					[2, new Vec2D(200, 500)],
+					[3, new Vec2D(200, 600)],
+					[4, new Vec2D(200, 500)],
 				],
 			})}
 }
