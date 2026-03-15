@@ -12,7 +12,9 @@ type Props = {
 	blockIds: BlockId[] | null;
 	children?: React.ReactNode;
 	className?: string;
-	preview?: boolean;
+	template?: boolean;
+	disabled?: boolean;
+	editable?: boolean;
 };
 
 export default function DropZone({
@@ -22,13 +24,15 @@ export default function DropZone({
 	accepts,
 	blockIds,
 	className,
-	preview = false,
+	template = false,
+	disabled = false,
+	editable = true,
 }: Props) {
 	const { blocks, draggedBlockId } = useGlobalStateContext();
 	const { ref, isDropTarget } = useDroppable({
 		id: id,
 		data: { slot, accepts, maxElements },
-		disabled: preview, // Disable dropping when in preview mode
+		disabled: disabled, // Disable dropping when in preview mode
 	});
 
 	const normalizedDraggedBlockId = draggedBlockId
@@ -63,23 +67,12 @@ export default function DropZone({
 	// 3. Final canDrop
 	const canDrop =
 		isDropTarget && !isMaxElementsReached && !isSelf && acceptsDraggedBlock;
-	console.log(
-		"Dropping block:",
-		draggedBlock,
-		"into slot:",
-		`${id}`,
-		"with accepts:",
-		accepts,
-	);
-	console.log(
-		`isDropTarget: ${isDropTarget}, isMaxElementsReached: ${isMaxElementsReached}, acceptsDraggedBlock: ${acceptsDraggedBlock}, canDrop: ${canDrop}`,
-	);
 
 	return (
 		<div
 			ref={ref}
 			className={cn(
-				"relative flex flex-1 border-2 border-dashed p-2 flex-col gap-2 rounded-md min-h-12 bg-gray-200",
+				"relative flex flex-1 border border-dashed p-1 flex-col gap-2 rounded-md bg-gray-200",
 				canDrop
 					? "border-blue-500 bg-blue-50/10"
 					: "border-gray-500 bg-gray-200",
@@ -88,7 +81,13 @@ export default function DropZone({
 		>
 			{/* 1. Existing Blocks */}
 			{existingBlockIds.map((blockId) => (
-				<BlockSelector key={blockId} id={blockId} preview={preview} />
+				<BlockSelector
+					key={blockId}
+					id={blockId}
+					template={template}
+					disabled={disabled}
+					editable={editable}
+				/>
 			))}
 
 			{/* 2. The Insertion Shadow */}
@@ -102,7 +101,9 @@ export default function DropZone({
 
 			{/* 3. Empty State */}
 			{existingBlockIds.length === 0 && !canDrop && (
-				<p className="text-gray-500 italic text-sm">Drop blocks here</p>
+				<p className="text-gray-500 italic text-sm flex p-3 items-center justify-center">
+					Drop blocks here
+				</p>
 			)}
 		</div>
 	);

@@ -1,6 +1,6 @@
 import { useDraggable } from "@dnd-kit/react";
 import { cn } from "../utils/cn";
-import { Trash2Icon, TrashIcon } from "lucide-react";
+import { Trash2Icon } from "lucide-react";
 import { useGlobalStateContext } from "../context/GlobalStateContext";
 
 type Props = {
@@ -8,8 +8,9 @@ type Props = {
 	type: string;
 	children?: React.ReactNode;
 	className?: string;
-	preview?: boolean;
+	template?: boolean;
 	disabled?: boolean;
+	editable?: boolean;
 };
 
 export default function DraggableElement({
@@ -17,8 +18,9 @@ export default function DraggableElement({
 	type,
 	children,
 	className,
-	preview = false,
+	template = false,
 	disabled = false,
+	editable = true,
 }: Props) {
 	const { deleteBlock } = useGlobalStateContext();
 	const { ref, isDragging } = useDraggable({ id, type, disabled: disabled });
@@ -33,7 +35,7 @@ export default function DraggableElement({
 			)}
 		>
 			{/* The actual drag handle - only this starts the drag */}
-			{disabled && (
+			{!disabled && (
 				<div className="flex cursor-grab active:cursor-grabbing p-1 hover:bg-white/20 rounded h-min w-min">
 					⠿
 				</div>
@@ -41,7 +43,7 @@ export default function DraggableElement({
 
 			{/* Content area: clicks here won't trigger the IfBlock drag */}
 			<div className="flex-1">{children}</div>
-			{!preview && (
+			{editable && (
 				<button
 					className="flex cursor-grab active:cursor-grabbing p-1 hover:bg-white/20 rounded h-min w-min"
 					onClick={() => deleteBlock(id)}

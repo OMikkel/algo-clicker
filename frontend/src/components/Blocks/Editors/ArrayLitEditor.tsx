@@ -11,7 +11,13 @@ function parseArrayValues(input: string): number[] {
 		.filter((n) => !Number.isNaN(n));
 }
 
-export function ArrayLitEditor({ block }: { block: ArrayLitBlock }) {
+export function ArrayLitEditor({
+	block,
+	editable,
+}: {
+	block: ArrayLitBlock;
+	editable?: boolean;
+}) {
 	const { updateBlockData } = useGlobalStateContext();
 
 	// 1. Create local state to hold the "raw" string as the user types
@@ -42,6 +48,7 @@ export function ArrayLitEditor({ block }: { block: ArrayLitBlock }) {
 			onKeyDown={(e) => e.key === "Enter" && handleBlur()} // Save on Enter key
 			className="w-32 bg-black/30 border-none rounded px-1 text-right focus:ring-1 focus:ring-blue-500 outline-none"
 			placeholder="1, 2, 3"
+			disabled={!editable}
 		/>
 	);
 }

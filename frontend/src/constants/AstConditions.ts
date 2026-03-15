@@ -8,6 +8,8 @@ export type Slot = {
 
 export type ASTDefinition = {
     color: string;
+    displayTitle?: string;
+    helpText?: string;
     slots: Slot[];
 };
 
@@ -42,6 +44,8 @@ export const BLOCK_REGISTRY: Record<AllBlockKeys, ASTDefinition> = {
 
     If: {
         color: "bg-blue-600",
+        displayTitle: "If Statement",
+        helpText: "Execute a block of code if a condition is true.",
         slots: [
             { id: "cond", label: "IF", accepts: BoolType, max: 1 },
             { id: "ifBlock", label: "THEN", accepts: Statement },
@@ -50,6 +54,8 @@ export const BLOCK_REGISTRY: Record<AllBlockKeys, ASTDefinition> = {
     },
     While: {
         color: "bg-blue-600",
+        displayTitle: "While Loop",
+        helpText: "Execute a block of code while a condition is true.",
         slots: [
             { id: "cond", label: "COND", accepts: BoolType, max: 1 },
             { id: "body", label: "BODY", accepts: Statement },
@@ -57,6 +63,8 @@ export const BLOCK_REGISTRY: Record<AllBlockKeys, ASTDefinition> = {
     },
     IntAssign: {
         color: "bg-purple-600",
+        displayTitle: "Integer Assignment",
+        helpText: "Assign a value to an integer variable.",
         slots: [
             { id: "variable", label: "Variable", accepts: ["IntVarLit"], max: 1 },
             { id: "value", label: "Value", accepts: IntType, max: 1 },
@@ -64,6 +72,8 @@ export const BLOCK_REGISTRY: Record<AllBlockKeys, ASTDefinition> = {
     },
     BoolAssign: {
         color: "bg-purple-600",
+        displayTitle: "Boolean Assignment",
+        helpText: "Assign a value to a boolean variable.",
         slots: [
             { id: "variable", label: "Variable", accepts: ["BoolVar"], max: 1 },
             { id: "value", label: "Value", accepts: BoolType, max: 1 },
@@ -71,6 +81,8 @@ export const BLOCK_REGISTRY: Record<AllBlockKeys, ASTDefinition> = {
     },
     ArrayAssign: {
         color: "bg-purple-600",
+        displayTitle: "Array Assignment",
+        helpText: "Assign a value to an array variable.",
         slots: [
             { id: "variable", label: "Variable", accepts: ["ArrayVar"], max: 1 },
             { id: "value", label: "Value", accepts: ArrayType, max: 1 },
@@ -78,13 +90,17 @@ export const BLOCK_REGISTRY: Record<AllBlockKeys, ASTDefinition> = {
     },
     Swap: {
         color: "bg-blue-600",
+        displayTitle: "Swap",
+        helpText: "Swap the values of two variables.",
         slots: [
-            { id: "a", label: "First", accepts: ["IntVarLit"], max: 1 },
-            { id: "b", label: "Second", accepts: ["IntVarLit"], max: 1 },
-        ],
+            { id: "var1", label: "Variable 1", accepts: ["IntVarLit", "BoolVar", "ArrayVar"], max: 1 },
+            { id: "var2", label: "Variable 2", accepts: ["IntVarLit", "BoolVar", "ArrayVar"], max: 1 },
+        ]
     },
     ArrayInsert: {
         color: "bg-blue-600",
+        displayTitle: "Array Insert",
+        helpText: "Insert a value into an array at a specific index.",
         slots: [
             { id: "arr", label: "Array", accepts: ArrayType, max: 1 },
             { id: "value", label: "Value", accepts: IntType, max: 1 },
@@ -93,6 +109,8 @@ export const BLOCK_REGISTRY: Record<AllBlockKeys, ASTDefinition> = {
     },
     ArrayRemove: {
         color: "bg-blue-600",
+        displayTitle: "Array Remove",
+        helpText: "Remove a value from an array at a specific index.",
         slots: [
             { id: "arr", label: "Array", accepts: ArrayType, max: 1 },
             { id: "index", label: "Index", accepts: IntType, max: 1 },
@@ -258,6 +276,8 @@ export const BLOCK_REGISTRY: Record<AllBlockKeys, ASTDefinition> = {
 
     // case class InitialProgramWithList_A(decl_A: ArrayAssign, solution: AstNode) extends AstNode
     InitialProgramWithList_A: {
+        displayTitle: "Initial Program",
+        helpText: "Compose your program by filling in the solutions block.",
         slots: [
             { id: "decl_A", label: "Array Declaration", accepts: ["ArrayAssign"], max: 1 },
             { id: "solution", label: "Solution", accepts: Statement, max: 1 },
