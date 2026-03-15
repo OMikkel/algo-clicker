@@ -18,28 +18,12 @@ export default function InitialBlock({ block }: { block: BaseBlock | null }) {
 				{/* Render unique inputs like IntLit values here */}
 				<BlockDataEditor block={block} />
 			</div>
-
-			{config.slots.map((slot) => (
-				<div key={slot.id} className="flex flex-col gap-1">
-					<label className="text-[10px] font-mono opacity-80 text-left">
-						{slot.label}
-					</label>
-					<DropZone
-						preview={true}
-						id={`${block.id}-${slot.id}`}
-						slot={slot.id}
-						accepts={slot.accepts}
-						maxElements={slot.max}
-						blockIds={
-							Array.isArray(block[slot.id])
-								? block[slot.id]
-								: block[slot.id]
-									? [block[slot.id]]
-									: []
-						}
-					/>
-				</div>
-			))}
+            {config.slots[0] && {
+                const slot = config.slots[0];
+                return(
+                    
+                )
+            }}
 		</div>
 	);
 }

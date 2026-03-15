@@ -1,5 +1,5 @@
 import { DragDropProvider, DragOverlay } from "@dnd-kit/react";
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { BLOCK_REGISTRY } from "../constants/AstConditions";
 import type { Block, BlockId, Blocks } from "../types/blocks";
 import { createBlockFromAST } from "../utils/objects";
@@ -8,13 +8,6 @@ export type BlockState = {
 	blocks: Blocks;
 	rootBlocks: BlockId[];
 	templates: BlockId[];
-};
-
-type DragOperationEvent = {
-	operation: {
-		source?: any;
-		target?: any;
-	};
 };
 
 type GlobalState = {
@@ -35,6 +28,8 @@ const ASTs: Block[] = Object.keys(BLOCK_REGISTRY).map((key) =>
 const initialBlockState = (
 	InitialProgramWithList_A_ID: BlockId,
 	ArrayAssign_Initial_ID: BlockId,
+	ArrayVar_Initial_ID: BlockId,
+	ArrayLit_Initial_ID: BlockId,
 ): BlockState => ({
 	blocks: {
 		// Initialize template blocks
@@ -56,8 +51,21 @@ const initialBlockState = (
 		[ArrayAssign_Initial_ID]: {
 			type: "ArrayAssign",
 			id: ArrayAssign_Initial_ID,
-			parentId: null,
-			value: "",
+			parentId: InitialProgramWithList_A_ID,
+			variable: ArrayVar_Initial_ID,
+			value: ArrayLit_Initial_ID,
+		},
+		[ArrayVar_Initial_ID]: {
+			type: "ArrayVar",
+			id: ArrayVar_Initial_ID,
+			parentId: ArrayAssign_Initial_ID,
+			ident: "A",
+		},
+		[ArrayLit_Initial_ID]: {
+			type: "ArrayLit",
+			id: ArrayLit_Initial_ID,
+			parentId: ArrayAssign_Initial_ID,
+			values: Array(10).map(() => Math.ceil(Math.random() * 100)),
 		},
 	},
 	rootBlocks: [InitialProgramWithList_A_ID],
@@ -90,9 +98,16 @@ export default function GlobalStateProvider({
 		crypto.randomUUID(),
 	).current;
 	const ArrayAssign_Initial_ID = useRef<BlockId>(crypto.randomUUID()).current;
+	const ArrayVar_Initial_ID = useRef<BlockId>(crypto.randomUUID()).current;
+	const ArrayLit_Initial_ID = useRef<BlockId>(crypto.randomUUID()).current;
 
 	const [blockState, setBlockState] = useState<BlockState>(
-		initialBlockState(InitialProgramWithList_A_ID, ArrayAssign_Initial_ID),
+		initialBlockState(
+			InitialProgramWithList_A_ID,
+			ArrayAssign_Initial_ID,
+			ArrayVar_Initial_ID,
+			ArrayLit_Initial_ID,
+		),
 	);
 
 	useEffect(() => {
@@ -136,7 +151,6 @@ export default function GlobalStateProvider({
 
 		ws.onclose = () => {
 			console.log("Disconnected");
-			setIsConnected(false);
 		};
 
 		ws.onerror = (error) => {
