@@ -1,7 +1,7 @@
 import type { Environment } from "../data-model";
 import { DrawableElement } from "./DrawableElement";
 import { Vec2D } from "./Vec2D";
-const FONT_FAMILY = "comic sans"
+const FONT_FAMILY = "roboto"
 export const generateEnvironmentDrawables = (env: Environment, ctx: CanvasRenderingContext2D, height: number, _width: number, root: Vec2D = new Vec2D(0, 600)): DrawableElement[] => {
     const [row_padding, col_padding] = [4, 10]
 

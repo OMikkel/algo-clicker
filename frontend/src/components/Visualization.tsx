@@ -21,7 +21,7 @@ function Visualization({ width, height }: VisualizationProps) {
 		
 		const ctx = canvas.getContext("2d");
 		if (!ctx) return;
-
+		ctx.textBaseline = "top"
 		const objs = generateEnvironmentDrawables(env, ctx, height, width);
 
 		const [leftObj,rightObj] = [objs[1],objs[4]]
