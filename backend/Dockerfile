@@ -1,24 +1,33 @@
 # Build stage: compile the Scala backend
-FROM sbtscala/scala-sbt:graalvm-ce-22.3.3-b1-java17_1.12.5_3.8.2 AS build
+FROM sbtscala/scala-sbt:eclipse-temurin-alpine-21.0.8_9_1.12.4_3.8.1 AS build
 
 WORKDIR /app
 
 # Copy build config first for better cache behavior
-COPY build.sbt project/ ./
+COPY project ./project
 COPY src ./src
 
-# Package the application into a jar
-RUN sbt -no-colors package
+# Create a minimal sbt build for this source layout and compile once in build stage.
+RUN printf '%s\n' \
+	'ThisBuild / scalaVersion := "3.3.3"' \
+	'' \
+	'lazy val root = (project in file("."))' \
+	'  .settings(' \
+	'    name := "algo-clicker-backend",' \
+	'    Compile / unmanagedSourceDirectories += baseDirectory.value / "src",' \
+	'    Compile / mainClass := Some("algo_backend.JSONServer")' \
+	'  )' > /app/build.sbt && \
+	sbt compile
 
 # Runtime stage: run the compiled backend
-FROM  openjdk:26-ea-17-trixie AS runtime
+FROM sbtscala/scala-sbt:eclipse-temurin-alpine-21.0.8_9_1.12.4_3.8.1 AS runtime
 
 WORKDIR /app
 
-# Copy the packaged jar from the build stage
-COPY --from=build /app/target/scala-2.13/algo-backend_2.13-0.1.0.jar ./app.jar
+# Copy project sources and generated build config from the build stage.
+COPY --from=build /app /app
 
-EXPOSE 8080
+EXPOSE 8081
 
 # Listen on 0.0.0.0 so the container can be reached from outside
-CMD ["java", "-jar", "app.jar", "0.0.0.0", "8080"]
+CMD ["sbt", "runMain algo_backend.JSONServer 0.0.0.0 8081"]
