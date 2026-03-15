@@ -1,7 +1,6 @@
 import { DragDropProvider, DragOverlay } from "@dnd-kit/react";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { BLOCK_REGISTRY } from "../constants/AstConditions";
-import { testSampleInts } from "../tests/data";
 import type { Block, BlockId, Blocks } from "../types/blocks";
 import { createBlockFromAST } from "../utils/objects";
 
@@ -30,6 +29,42 @@ type GlobalState = {
 	resetApplication: () => void;
 };
 
+const ASTs: Block[] = Object.keys(BLOCK_REGISTRY).map((key) =>
+	createBlockFromAST(key, "template", ""),
+);
+const initialBlockState = (
+	InitialProgramWithList_A_ID: BlockId,
+	ArrayAssign_Initial_ID: BlockId,
+): BlockState => ({
+	blocks: {
+		// Initialize template blocks
+		...ASTs.reduce(
+			(acc, ast) => {
+				acc[ast.id] = ast;
+				return acc;
+			},
+			{} as Record<string, Block>,
+		),
+		//case class InitialProgramWithList_A(decl_A: ArrayAssign, solution: AstNode) extends AstNode
+		[InitialProgramWithList_A_ID]: {
+			type: "InitialProgramWithList_A",
+			id: InitialProgramWithList_A_ID,
+			parentId: null,
+			decl_A: null,
+			solution: null,
+		},
+		[ArrayAssign_Initial_ID]: {
+			type: "ArrayAssign",
+			id: ArrayAssign_Initial_ID,
+			parentId: null,
+			value: "",
+		},
+	},
+	rootBlocks: [InitialProgramWithList_A_ID],
+
+	templates: ASTs.map((ast) => ast.id),
+});
+
 const GlobalStateContext = React.createContext<GlobalState | null>(null);
 
 export const useGlobalStateContext = (): GlobalState => {
@@ -48,27 +83,17 @@ export default function GlobalStateProvider({
 }: {
 	children: React.ReactNode;
 }) {
-	const [isConnected, setIsConnected] = useState(false);
 	const socketRef = useRef<WebSocket | null>(null);
 	const [draggedBlockId, setDraggedBlockId] = useState<BlockId | null>(null);
 
-	const ASTs: Block[] = Object.keys(BLOCK_REGISTRY).map((key) =>
-		createBlockFromAST(key, "template", ""),
+	const InitialProgramWithList_A_ID = useRef<BlockId>(
+		crypto.randomUUID(),
+	).current;
+	const ArrayAssign_Initial_ID = useRef<BlockId>(crypto.randomUUID()).current;
+
+	const [blockState, setBlockState] = useState<BlockState>(
+		initialBlockState(InitialProgramWithList_A_ID, ArrayAssign_Initial_ID),
 	);
-	const [blockState, setBlockState] = useState<BlockState>({
-		...testSampleInts,
-		blocks: {
-			...testSampleInts.blocks,
-			...ASTs.reduce(
-				(acc, ast) => {
-					acc[ast.id] = ast;
-					return acc;
-				},
-				{} as Record<string, Block>,
-			),
-		},
-		templates: ASTs.map((ast) => ast.id),
-	});
 
 	useEffect(() => {
 		// Initialize connection
@@ -76,7 +101,6 @@ export default function GlobalStateProvider({
 
 		ws.onopen = () => {
 			console.log("Connected to Scala Backend");
-			setIsConnected(true);
 		};
 
 		ws.onmessage = (event) => {
@@ -84,6 +108,16 @@ export default function GlobalStateProvider({
 			const payload = JSON.parse(event.data);
 			// Handle server responses here (e.g., visualization updates)
 			switch (payload.type) {
+				case "error":
+					console.warn("Error from server:", payload.message);
+
+					const causingBlockIdMatch = payload.message.match(/Block '(\w+)'/);
+					console.log("Regex match result:", causingBlockIdMatch);
+					if (showAlert) {
+						alert(`Technical details:\n${payload.message}`);
+					}
+
+					break;
 				// case "parsed":
 				// 	ws.send(
 				// 		JSON.stringify({
@@ -168,17 +202,10 @@ export default function GlobalStateProvider({
 				"Are you sure you want to reset the application? This cannot be undone.",
 			)
 		) {
-			updateBlockState(() => ({
-				blocks: ASTs.reduce(
-					(acc, ast) => {
-						acc[ast.id] = ast;
-						return acc;
-					},
-					{} as Record<string, Block>,
-				),
-				rootBlocks: [],
-				templates: ASTs.map((ast) => ast.id),
-			}));
+			localStorage.removeItem("algo-playground-storage");
+			setBlockState(
+				initialBlockState(InitialProgramWithList_A_ID, ArrayAssign_Initial_ID),
+			);
 		}
 	};
 

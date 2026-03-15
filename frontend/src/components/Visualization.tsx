@@ -3,6 +3,8 @@ import drawAlgo from "../drawing/algo";
 
 import { example_env } from "../example-env";
 import { generateEnvironmentDrawables } from "../drawing/environments";
+import type { DrawableElement } from "../drawing/DrawableElement";
+import { Vec2D } from "../drawing/Vec2D";
 
 interface VisualizationProps {
 	width: number;
@@ -13,7 +15,6 @@ function Visualization({ width, height }: VisualizationProps) {
 	const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
 	const startTime = performance.now();
-	
 
 	useEffect(() => {
 		const canvas = canvasRef.current;
@@ -25,7 +26,7 @@ function Visualization({ width, height }: VisualizationProps) {
 		const env = example_env;
 		const objs = generateEnvironmentDrawables(env, ctx, height, width);
 
-		const elements: elementData[] = [{xPos: 50, yPos: 600}]
+		const elements: DrawableElement[] = objs;
 		const animation = getAnimation("liftAnimation", elements);
 
 		const render = () => {
@@ -35,72 +36,83 @@ function Visualization({ width, height }: VisualizationProps) {
 
 			drawAlgo.drawHeadAndBody(width / 2, 300, ctx);
 
-			objs.forEach(v => v.draw());
+			objs.forEach((v) => v.draw());
 
-			const rHandX = keyframe(time, animation.rHandX);
-			const rHandY = keyframe(time, animation.rHandY);
-			//const elementsGrab = 
+			// const rHandX = keyframe(time, animation.rHandX);
+			// const rHandY = keyframe(time, animation.rHandY);
+			const rhand = keyframe(time, animation.rHandPos);
+			const leftObj = keyframe(time, animation.leftObj);
+			const rightObj = keyframe(time, animation.rightObj);
+			objs[0].setPosition(leftObj);
+			objs[2].setPosition(rightObj);
 
-			drawAlgo.drawArmsAndHands(width / 2, 300, rHandX, rHandY, 300, 500, ctx);
+			drawAlgo.drawArmsAndHands(
+				width / 2,
+				300,
+				rhand.X(),
+				rhand.Y(),
+				300,
+				500,
+				ctx,
+			);
 
 			requestAnimationFrame(render);
 		};
 
 		requestAnimationFrame(render);
-
 	}, [height, width, startTime]);
 
 	return <canvas ref={canvasRef} width={width} height={height} />;
 }
 
-function keyframe(time: number, frames: [number, number][]) {
-  for (let i = 0; i < frames.length - 1; i++) {
-    const [t1, v1] = frames[i];
-    const [t2, v2] = frames[i + 1];
+function keyframe(time: number, frames: [number, Vec2D][]) {
+	for (let i = 0; i < frames.length - 1; i++) {
+		const [t1, v1] = frames[i];
+		const [t2, v2] = frames[i + 1];
 
-    if (time >= t1 && time <= t2) {
-      const p = (time - t1) / (t2 - t1);
-      return v1 + (v2 - v1) * p;
-    }
-  }
+		if (time >= t1 && time <= t2) {
+			const p = (time - t1) / (t2 - t1);
+			return v1.slerp(v2, p);
+		}
+	}
 
-  return frames[frames.length - 1][1];
+	return frames[frames.length - 1][1];
 }
 
-interface elementData {
-	xPos: number;
-	yPos: number;
-}
-
-function getAnimation(operation: string, elements: elementData[]) {
-	const rHandXDefault = 100;
-	const rHandYDefault = 500;
-
+function getAnimation(operation: string, elements: DrawableElement[]) {
+	const rHandPosDefault = new Vec2D(100, 500);
+	const obj0pos = elements[0].position;
+	const obj3pos = elements[2].position;
+	const viaLiftPoint = new Vec2D(50, 400);
 	switch (operation) {
 		case "liftAnimation": {
 			return {
-				rHandX: [
-					[0, rHandXDefault],
-					[1, elements[0].xPos],
-					[2, 50],
-					[3, elements[0].xPos],
-					[4, rHandXDefault],
+				rHandPos: [
+					[0, rHandPosDefault],
+					[1, obj0pos],
+					[2, viaLiftPoint],
+					[3, obj3pos],
+					[4, rHandPosDefault],
 				],
-				rHandY: [
-					[0, rHandYDefault],
-					[1, elements[0].yPos],
-					[2, 400],
-					[3, elements[0].yPos],
-					[4, rHandYDefault],
+				leftObj: [
+					[0, obj0pos],
+					[1, obj0pos],
+					[2, viaLiftPoint],
+					[3, obj3pos],
+					[4, obj3pos],
+					[5, obj3pos],
 				],
-				elementsGrab: [
-					[1, "inRightHand"],
-					[3, "free"],
+				rightObj: [
+					[0, obj3pos],
+					[1, obj3pos],
+					[2, obj3pos],
+					[3, obj0pos],
+					[4, obj0pos],
+					[5, obj0pos],
 				],
-			}
+			};
 		}
-			
 	}
-};
+}
 
 export default Visualization;

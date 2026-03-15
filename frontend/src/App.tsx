@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import "./App.css";
-import BlockCanvas from "./components/BlockCanvas";
+import Workbench from "./components/BlockCanvas";
 import Visualization from "./components/Visualization";
 import GlobalStateProvider from "./context/GlobalStateContext";
 import Toolbar from "./Toolbar";
@@ -10,7 +10,7 @@ function App() {
 		<GlobalStateProvider>
 			<div className="grid grid-cols-[1fr_2fr_1fr] gap-3 p-3 w-screen">
 				<Toolbar />
-				<BlockCanvas />
+				<Workbench />
 				<VisualizationFrame />
 			</div>
 		</GlobalStateProvider>

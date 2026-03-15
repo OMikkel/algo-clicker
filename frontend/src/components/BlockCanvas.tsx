@@ -3,19 +3,14 @@ import { cn } from "../utils/cn";
 import DropZone from "./DropZone";
 import { PlayIcon, RefreshCwIcon, Trash2Icon } from "lucide-react";
 
-export default function BlockCanvas() {
-	const {
-		rootBlocks,
-		resetApplication,
-		rerunApplication,
-		runApplication,
-		isConnected,
-	} = useGlobalStateContext();
+export default function Workbench() {
+	const { rootBlocks, resetApplication, rerunApplication, runApplication } =
+		useGlobalStateContext();
 
 	return (
 		<div className="w-full bg-gray-800 p-4 rounded-md">
 			<div className="flex flex-row items-center justify-between">
-				<h2 className="text-white text-lg font-bold">Canvas</h2>
+				<h2 className="text-white text-lg font-bold">Workbench</h2>
 				<div className="flex gap-2">
 					<Button className="bg-blue-500" onClick={() => runApplication()}>
 						<PlayIcon className="inline-block w-5 h-5 mr-1" />
