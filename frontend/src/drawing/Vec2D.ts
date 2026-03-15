@@ -18,6 +18,8 @@ export class Vec2D {
         let a_to_b = destination.subtract(this);
         return this.translate(a_to_b.scale(progress));
     }
+    add = (b: Vec2D) => new Vec2D(this.x + b.X(), this.y + b.Y())
+    clone = () => new Vec2D(this.x, this.y)
 
     constructor(x: number, y: number) {
         this.x = x
