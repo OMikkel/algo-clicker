@@ -117,8 +117,6 @@ export default function GlobalStateProvider({
 		};
 	}, []);
 
-	const connectionStatus = isConnected ? "Connected" : "Disconnected";
-
 	// const connectionStatus = {
 	// 	[ReadyState.CONNECTING]: "Connecting",
 	// 	[ReadyState.OPEN]: "Open",
