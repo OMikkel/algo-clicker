@@ -1,5 +1,6 @@
 import type { IfBlock } from "./blocks/if";
 import type { IntLitBlock, IntMinusBlock, IntPlusBlock } from "./blocks/intType";
+import type { ArrayLitBlock } from "./blocks/arrayType";
 
 
 
@@ -20,4 +21,4 @@ export interface BoolLitBlock extends BaseBlock {
 
 export type Blocks = Record<BlockId, Block>;
 
-export type Block = IfBlock | BoolLitBlock | IntLitBlock | IntPlusBlock | IntMinusBlock;
+export type Block = IfBlock | BoolLitBlock | IntLitBlock | IntPlusBlock | IntMinusBlock | ArrayLitBlock;
