@@ -45,29 +45,30 @@ export default function InitialBlock({ block }: { block: BaseBlock | null }) {
 					/>
 				</div>
 			)}
-			{config.slots[1] && (
-				<div key={config.slots[1].id} className="flex flex-col gap-1">
+
+			{config.slots.slice(-1).map((slot) => (
+				<div key={slot.id} className="flex flex-col gap-1">
 					<label className="text-[10px] font-mono opacity-80 text-left">
-						{config.slots[1].label}
+						{slot.label}
 					</label>
 					<DropZone
 						template={false}
 						disabled={false}
 						editable={true}
-						id={`${block.id}-${config.slots[1].id}`}
-						slot={config.slots[1].id}
-						accepts={config.slots[1].accepts}
-						maxElements={config.slots[1].max}
+						id={`${block.id}-${slot.id}`}
+						slot={slot.id}
+						accepts={slot.accepts}
+						maxElements={slot.max}
 						blockIds={
-							Array.isArray(block[config.slots[1].id])
-								? block[config.slots[1].id]
-								: block[config.slots[1].id]
-									? [block[config.slots[1].id]]
+							Array.isArray(block[slot.id])
+								? block[slot.id]
+								: block[slot.id]
+									? [block[slot.id]]
 									: []
 						}
 					/>
 				</div>
-			)}
+			))}
 		</div>
 	);
 }

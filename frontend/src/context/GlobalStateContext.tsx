@@ -53,7 +53,7 @@ const initialBlockState = (
 			id: InitialProgramWithList_A_ID,
 			parentId: "root",
 			decl_A: ArrayAssign_Initial_ID,
-			solution: null,
+			solution: [],
 		},
 		[ArrayAssign_Initial_ID]: {
 			type: "ArrayAssign",
@@ -140,6 +140,11 @@ export default function GlobalStateProvider({
 				case "trace":
 					setRunState("idle");
 					updateBlockState((p) => ({ ...p, env: payload }));
+					document.dispatchEvent(
+						new CustomEvent("algoclickertrace", {
+							detail: payload,
+						}),
+					);
 					break;
 				case "error":
 					console.warn("Error from server:", payload.message);
@@ -422,6 +427,17 @@ export default function GlobalStateProvider({
 				}
 			};
 
+			const getSlotDefinition = (parentId: BlockId, slot: string) => {
+				const parent = nextBlocks[parentId];
+				if (!parent) return null;
+
+				const parentConfig =
+					BLOCK_REGISTRY[parent.type as keyof typeof BLOCK_REGISTRY];
+				if (!parentConfig) return null;
+
+				return parentConfig.slots.find((s) => s.id === slot) ?? null;
+			};
+
 			const removeFromRoot = (id: BlockId) => {
 				nextRoot = nextRoot.filter((rootId) => rootId !== id);
 			};
@@ -500,10 +516,36 @@ export default function GlobalStateProvider({
 
 				const parent = { ...nextBlocks[parentId] };
 				const currentSlotValue = parent[slot];
+				const slotDefinition = getSlotDefinition(parentId, slot);
+				const isListSlot = slotDefinition
+					? slotDefinition.max !== 1
+					: Array.isArray(currentSlotValue);
+				const maxElements = slotDefinition?.max;
 
-				if (Array.isArray(currentSlotValue)) {
-					if (!currentSlotValue.includes(childId)) {
-						parent[slot] = [...currentSlotValue, childId];
+				if (isListSlot) {
+					let nextSlotValues: BlockId[] = [];
+
+					if (Array.isArray(currentSlotValue)) {
+						nextSlotValues = currentSlotValue.filter(
+							(existingChildId) => !!nextBlocks[existingChildId],
+						);
+					} else if (
+						typeof currentSlotValue === "string" &&
+						nextBlocks[currentSlotValue]
+					) {
+						nextSlotValues = [currentSlotValue];
+					}
+
+					if (nextSlotValues.includes(childId)) {
+						parent[slot] = nextSlotValues;
+					} else {
+						if (
+							typeof maxElements === "number" &&
+							nextSlotValues.length >= maxElements
+						) {
+							return false;
+						}
+						parent[slot] = [...nextSlotValues, childId];
 					}
 				} else {
 					if (currentSlotValue && currentSlotValue !== childId) {

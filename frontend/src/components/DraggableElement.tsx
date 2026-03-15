@@ -29,28 +29,30 @@ export default function DraggableElement({
 		<div
 			ref={ref}
 			className={cn(
-				"flex flex-row gap-1 border-2 border-solid bg-gray-600 rounded-md transition-opacity",
+				"flex flex-col gap-1 border-2 border-solid bg-gray-600 rounded-md transition-opacity",
 				className,
 				isDragging ? "opacity-30" : "opacity-100",
 			)}
 		>
-			{/* The actual drag handle - only this starts the drag */}
-			{!disabled && (
-				<div className="flex cursor-grab active:cursor-grabbing p-1 hover:bg-white/20 rounded h-min w-min">
-					⠿
-				</div>
-			)}
+			<div className="flex flex-row items-start">
+				{/* The actual drag handle - only this starts the drag */}
+				{!disabled && (
+					<div className="flex cursor-grab active:cursor-grabbing p-1 hover:bg-white/20 rounded h-min w-min">
+						⠿
+					</div>
+				)}
 
-			{/* Content area: clicks here won't trigger the IfBlock drag */}
-			<div className="flex-1">{children}</div>
-			{editable && (
-				<button
-					className="flex cursor-grab active:cursor-grabbing p-1 hover:bg-white/20 rounded h-min w-min"
-					onClick={() => deleteBlock(id)}
-				>
-					<Trash2Icon className="w-4 h-4" />
-				</button>
-			)}
+				{/* Content area: clicks here won't trigger the IfBlock drag */}
+				<div className="flex-1">{children}</div>
+				{editable && (
+					<button
+						className="flex cursor-grab active:cursor-grabbing p-1 hover:bg-white/20 rounded h-min w-min"
+						onClick={() => deleteBlock(id)}
+					>
+						<Trash2Icon className="w-4 h-4" />
+					</button>
+				)}
+			</div>
 		</div>
 	);
 }

@@ -56,8 +56,15 @@ function Visualization({ width, height }: VisualizationProps) {
 			eyeFocusRef.current = new Vec2D(width / 2, height / 2);
 		};
 
-		canvas.addEventListener("mousemove", updateEyeFocusFromPointer);
-		canvas.addEventListener("mouseleave", resetEyeFocus);
+		const maybeResetWhenLeavingWindow = (event: MouseEvent) => {
+			if (!event.relatedTarget) {
+				resetEyeFocus();
+			}
+		};
+
+		window.addEventListener("mousemove", updateEyeFocusFromPointer);
+		window.addEventListener("mouseout", maybeResetWhenLeavingWindow);
+		window.addEventListener("blur", resetEyeFocus);
 
 		let animationFrameId: number;
 
@@ -106,8 +113,9 @@ function Visualization({ width, height }: VisualizationProps) {
 
 		return () => {
 			cancelAnimationFrame(animationFrameId);
-			canvas.removeEventListener("mousemove", updateEyeFocusFromPointer);
-			canvas.removeEventListener("mouseleave", resetEyeFocus);
+			window.removeEventListener("mousemove", updateEyeFocusFromPointer);
+			window.removeEventListener("mouseout", maybeResetWhenLeavingWindow);
+			window.removeEventListener("blur", resetEyeFocus);
 		};
 	}, [env, height, width]);
 

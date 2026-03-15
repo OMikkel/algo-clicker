@@ -13,7 +13,6 @@ export default function Workbench() {
 	const {
 		rootBlocks,
 		resetApplication,
-		rerunApplication,
 		runApplication,
 		stepForward,
 		errorMessage,
