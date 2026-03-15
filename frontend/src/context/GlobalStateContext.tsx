@@ -75,7 +75,7 @@ const initialBlockState = (
 		},
 	},
 	rootBlocks: [InitialProgramWithList_A_ID],
-	env : emptyEnvironment(),
+	env: emptyEnvironment(),
 	templates: ASTs.map((ast) => ast.id),
 });
 
@@ -129,8 +129,8 @@ export default function GlobalStateProvider({
 			const payload = JSON.parse(event.data);
 			// Handle server responses here (e.g., visualization updates)
 			switch (payload.type) {
-				case "trace": 
-					updateBlockState(p => ({...p,env: payload})) 
+				case "trace":
+					updateBlockState((p) => ({ ...p, env: payload }));
 					break;
 				case "error":
 					console.warn("Error from server:", payload.message);
@@ -227,7 +227,12 @@ export default function GlobalStateProvider({
 		) {
 			localStorage.removeItem("algo-playground-storage");
 			setBlockState(
-				initialBlockState(InitialProgramWithList_A_ID, ArrayAssign_Initial_ID, ArrayVar_Initial_ID, ArrayLit_Initial_ID),
+				initialBlockState(
+					InitialProgramWithList_A_ID,
+					ArrayAssign_Initial_ID,
+					ArrayVar_Initial_ID,
+					ArrayLit_Initial_ID,
+				),
 			);
 		}
 	};
@@ -576,15 +581,18 @@ export default function GlobalStateProvider({
 				runApplication,
 				rerunApplication,
 				resetApplication,
-				env: blockState.env
+				env: blockState.env,
 			}}
 		>
 			<DragDropProvider onDragEnd={onDragEnd} onDragStart={onDragStart}>
 				{children}
-				<DragOverlay>
+				<DragOverlay dropAnimation={null}>
 					{activeBlock ? (
 						<div className="p-3 bg-gray-700 border-2 border-blue-500 rounded-md shadow-2xl opacity-90 cursor-grabbing transform scale-105">
-							<span className="text-white font-bold">{activeBlock.type}</span>
+							<span className="text-white font-bold">
+								{BLOCK_REGISTRY[activeBlock.type]?.displayTitle ||
+									activeBlock.type}
+							</span>
 						</div>
 					) : null}
 				</DragOverlay>

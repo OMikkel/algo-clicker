@@ -1,11 +1,21 @@
 import { useGlobalStateContext } from "../context/GlobalStateContext";
 import { cn } from "../utils/cn";
 import BlockSelector from "./BlockSelector";
-import { PlayIcon, RefreshCwIcon, Trash2Icon } from "lucide-react";
+import {
+	CircleAlertIcon,
+	PlayIcon,
+	RefreshCwIcon,
+	Trash2Icon,
+} from "lucide-react";
 
 export default function Workbench() {
-	const { rootBlocks, resetApplication, rerunApplication, runApplication } =
-		useGlobalStateContext();
+	const {
+		rootBlocks,
+		resetApplication,
+		rerunApplication,
+		runApplication,
+		errorMessage,
+	} = useGlobalStateContext();
 	const initialProgramBlockId = rootBlocks[0];
 
 	return (
@@ -23,6 +33,26 @@ export default function Workbench() {
 						<Trash2Icon className="inline-block w-5 h-5 mr-1" />
 					</Button>
 				</div>
+			</div>
+			<div>
+				<div>
+					<CircleAlertIcon
+						className={cn(
+							"inline-block w-5 h-5 mr-1",
+							errorMessage ? "text-red-500" : "text-gray-500",
+						)}
+					/>
+					<span
+						className={cn(
+							"text-sm",
+							errorMessage ? "text-red-500" : "text-gray-500",
+						)}
+					>
+						{errorMessage ? "Error: " + errorMessage : "No errors"}
+					</span>
+				</div>
+				<div className="h-px bg-white/20 my-2" />
+				<div>{errorMessage}</div>
 			</div>
 			<div className="w-full h-full bg-gray-800 p-4 rounded-md border-none">
 				{initialProgramBlockId ? (

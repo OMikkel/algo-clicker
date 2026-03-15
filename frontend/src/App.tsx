@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import "./App.css";
-import Workbench from "./components/BlockCanvas";
+import Workbench from "./components/Workbench";
 import Visualization from "./components/Visualization";
 import GlobalStateProvider from "./context/GlobalStateContext";
 import Toolbar from "./Toolbar";
