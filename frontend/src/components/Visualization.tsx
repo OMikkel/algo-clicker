@@ -33,7 +33,10 @@ function Visualization({ width, height }: VisualizationProps) {
 
 			ctx.clearRect(0, 0, width, height);
 
-			drawAlgo.drawHeadAndBody(width / 2, 300, ctx);
+			const eyeFocusX: number = 200;
+			const eyeFocusY: number = 500;
+
+			drawAlgo.drawHeadAndBody(width / 2, 300, eyeFocusX, eyeFocusY, ctx);
 
 			objs.forEach((v) => v.draw());
 			let rhand = rHandPosDefault
