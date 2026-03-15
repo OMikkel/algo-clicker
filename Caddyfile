@@ -1,0 +1,14 @@
+# Reverse proxy for local docker-compose development.
+# Expect the following hostnames to resolve to this machine (e.g. /etc/hosts or via Cloudflare Tunnel):
+# - algo.froemosen.dk (frontend)
+# - algo-backend.froemosen.dk (backend)
+
+algo.froemosen.dk {
+    tls internal
+    reverse_proxy algo-frontend:5173
+}
+
+algo-backend.froemosen.dk {
+    tls internal
+    reverse_proxy algo-backend:80
+}
