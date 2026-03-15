@@ -1,9 +1,10 @@
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useState } from "react";
 import drawAlgo from "../drawing/algo";
 import { generateEnvironmentDrawables } from "../drawing/environments";
 import type { DrawableElement } from "../drawing/DrawableElement";
 import { Vec2D } from "../drawing/Vec2D";
 import { useGlobalStateContext } from "../context/GlobalStateContext";
+import type { Environment } from "../data-model";
 
 interface VisualizationProps {
 	width: number;
@@ -20,28 +21,58 @@ interface SwapAnimation {
 	eyeFocus: Vec2DKeyframes;
 }
 
+type TracePayload = {
+	type?: string;
+	event?: string;
+	arr?: string;
+	index?: number;
+	index1?: number;
+	index2?: number;
+	value?: number;
+	intEnv?: Record<string, number>;
+	boolEnv?: Record<string, boolean>;
+	arrEnv?: Record<string, number[]>;
+	parentEnv?: Environment | null;
+};
+
 function Visualization({ width, height }: VisualizationProps) {
 	const canvasRef = useRef<HTMLCanvasElement | null>(null);
 	const startTimeRef = useRef(performance.now());
 	const eyeFocusRef = useRef(new Vec2D(width / 2, height / 2));
 	const pointerActiveRef = useRef(false);
+	const [latestTrace, setLatestTrace] = useState<TracePayload | null>(null);
 	const { env } = useGlobalStateContext();
 
 	useEffect(() => {
-		document.addEventListener("algoclickertrace",(e) => console.log(e.detail))
+		const onTrace: EventListener = (event) => {
+			const customEvent = event as CustomEvent<TracePayload>;
+			if (!customEvent.detail) return;
+			setLatestTrace(customEvent.detail);
+		};
+
+		document.addEventListener("algoclickertrace", onTrace);
+		return () => {
+			document.removeEventListener("algoclickertrace", onTrace);
+		};
+	}, []);
+
+	useEffect(() => {
 		const canvas = canvasRef.current;
 		if (!canvas) return;
 
 		const ctx = canvas.getContext("2d");
 		if (!ctx) return;
+		startTimeRef.current = performance.now();
 		ctx.textBaseline = "top";
 		const objs = generateEnvironmentDrawables(env, ctx, height, width);
-		
-		const {index1,index2,..._v} = (env as unknown as any)
-		let [leftObj, rightObj] = _v["ArraySwap"] ? [objs[index1+1], objs[index2+1]] : [null,null];
 
+		const [leftObj, rightObj] = getTraceObjects(objs, env, latestTrace);
 		const animation =
-			leftObj && rightObj ? operations.compare(leftObj, rightObj) : null;
+			leftObj && rightObj
+				? operations.swap(leftObj, rightObj)
+				: latestTrace
+					? operations.wave()
+					: null;
 
 		const updateEyeFocusFromPointer = (event: MouseEvent) => {
 			const rect = canvas.getBoundingClientRect();
@@ -117,7 +148,7 @@ function Visualization({ width, height }: VisualizationProps) {
 			window.removeEventListener("mouseout", maybeResetWhenLeavingWindow);
 			window.removeEventListener("blur", resetEyeFocus);
 		};
-	}, [env, height, width]);
+	}, [env, height, width, latestTrace]);
 
 	return <canvas ref={canvasRef} width={width} height={height} />;
 }
@@ -141,7 +172,37 @@ const rHandGrabOffset = new Vec2D(-15, 35);
 const rHandPosDefault = new Vec2D(300, 500);
 const eyeFocusDefault = new Vec2D(200, 500);
 
-const operations = {
+const operations: {
+	wave: () => SwapAnimation;
+	swap: (left: DrawableElement, right: DrawableElement) => SwapAnimation;
+	compare: (left: DrawableElement, right: DrawableElement) => SwapAnimation;
+} = {
+	wave: (): SwapAnimation => {
+		const lHandPos: Vec2DKeyframes = [
+			[0, lHandPosDefault],
+			[0.5, new Vec2D(70, 430)],
+			[1, new Vec2D(130, 420)],
+			[1.5, new Vec2D(70, 430)],
+			[2, lHandPosDefault],
+		];
+		const leftObj: Vec2DKeyframes = [[0, new Vec2D(0, 0)]];
+		const rHandPos: Vec2DKeyframes = [
+			[0, rHandPosDefault],
+			[0.5, new Vec2D(330, 420)],
+			[1, new Vec2D(280, 410)],
+			[1.5, new Vec2D(330, 420)],
+			[2, rHandPosDefault],
+		];
+		const rightObj: Vec2DKeyframes = [[0, new Vec2D(0, 0)]];
+		const eyeFocus: Vec2DKeyframes = [
+			[0, eyeFocusDefault],
+			[0.75, new Vec2D(260, 440)],
+			[1.5, new Vec2D(140, 440)],
+			[2, eyeFocusDefault],
+		];
+
+		return { lHandPos, leftObj, rHandPos, rightObj, eyeFocus };
+	},
 	swap: (left: DrawableElement, right: DrawableElement): SwapAnimation => {
 		const leftPos = left.position;
 		const rightPos = right.position;
@@ -188,12 +249,12 @@ const operations = {
 			],
 		}
 	},
-	"compare": (left: DrawableElement,right: DrawableElement) => {
+	compare: (left: DrawableElement, right: DrawableElement): SwapAnimation => {
 		const leftPos = left.position
 		const rightPos = right.position
 		const leftComparePoint = new Vec2D(30, 370);
 		const rightComparePoint = new Vec2D(300, 370);
-		return ({
+		return {
 			lHandPos: [
 				[0, lHandPosDefault],
 				[1, leftPos.subtract(lHandGrabOffset).translateX(left.size.X()/2)],
@@ -232,8 +293,61 @@ const operations = {
 				[5, leftComparePoint],
 				[5.5, eyeFocusDefault],
 			],
-		})
+		}
 	},
+}
+
+function getTraceObjects(
+	objs: DrawableElement[],
+	env: Environment,
+	trace: TracePayload | null,
+): [DrawableElement | null, DrawableElement | null] {
+	if (!trace || trace.event !== "ArraySwap" || !trace.arr) {
+		return [null, null];
+	}
+
+	if (typeof trace.index1 !== "number" || typeof trace.index2 !== "number") {
+		return [null, null];
+	}
+
+	const firstObj = getArrayElementDrawable(objs, env, trace.arr, trace.index1);
+	const secondObj = getArrayElementDrawable(objs, env, trace.arr, trace.index2);
+
+	if (!firstObj || !secondObj) {
+		return [null, null];
+	}
+
+	if (firstObj.position.X() <= secondObj.position.X()) {
+		return [firstObj, secondObj];
+	}
+
+	return [secondObj, firstObj];
+}
+
+function getArrayElementDrawable(
+	objs: DrawableElement[],
+	env: Environment,
+	arrName: string,
+	index: number,
+): DrawableElement | null {
+	if (!Number.isInteger(index) || index < 0) return null;
+
+	const intCount = Object.keys(env.intEnv).length;
+	const boolCount = Object.keys(env.boolEnv).length;
+	let offset = intCount + boolCount;
+
+	for (const [name, values] of Object.entries(env.arrEnv)) {
+		const elementStart = offset + 1;
+
+		if (name === arrName) {
+			if (index >= values.length) return null;
+			return objs[elementStart + index] ?? null;
+		}
+
+		offset += 1 + values.length;
+	}
+
+	return null;
 }
 
 export default Visualization;
