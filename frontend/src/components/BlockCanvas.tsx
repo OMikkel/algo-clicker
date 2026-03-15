@@ -4,8 +4,13 @@ import DropZone from "./DropZone";
 import { PlayIcon, RefreshCwIcon, Trash2Icon } from "lucide-react";
 
 export default function BlockCanvas() {
-	const { rootBlocks, resetApplication, rerunApplication, runApplication } =
-		useGlobalStateContext();
+	const {
+		rootBlocks,
+		resetApplication,
+		rerunApplication,
+		runApplication,
+		isConnected,
+	} = useGlobalStateContext();
 
 	return (
 		<div className="w-full bg-gray-800 p-4 rounded-md">

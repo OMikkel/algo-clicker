@@ -1,5 +1,5 @@
 import { DragDropProvider, DragOverlay } from "@dnd-kit/react";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { BLOCK_REGISTRY } from "../constants/AstConditions";
 import { testSampleInts } from "../tests/data";
 import type { Block, BlockId, Blocks } from "../types/blocks";
@@ -22,6 +22,7 @@ type GlobalState = {
 	blocks: Blocks;
 	rootBlocks: BlockId[];
 	templates: BlockId[];
+	isConnected: string;
 	draggedBlockId: BlockId | null;
 	updateBlockData: <T>(blockId: string, newData: Partial<T>) => void;
 	runApplication: () => void;
@@ -47,6 +48,8 @@ export default function GlobalStateProvider({
 }: {
 	children: React.ReactNode;
 }) {
+	const [isConnected, setIsConnected] = useState(false);
+	const socketRef = useRef<WebSocket | null>(null);
 	const [draggedBlockId, setDraggedBlockId] = useState<BlockId | null>(null);
 
 	const ASTs: Block[] = Object.keys(BLOCK_REGISTRY).map((key) =>
@@ -68,6 +71,63 @@ export default function GlobalStateProvider({
 	});
 
 	useEffect(() => {
+		// Initialize connection
+		const ws = new WebSocket("ws://10.192.84.70:8080");
+
+		ws.onopen = () => {
+			console.log("Connected to Scala Backend");
+			setIsConnected(true);
+		};
+
+		ws.onmessage = (event) => {
+			console.log("Message from server:", event.data);
+			const payload = JSON.parse(event.data);
+			// Handle server responses here (e.g., visualization updates)
+			switch (payload.type) {
+				// case "parsed":
+				// 	ws.send(
+				// 		JSON.stringify({
+				// 			type: "command",
+				// 			kind: "auto",
+				// 			action: "run",
+				// 			payload: {
+				// 				astText: payload.value,
+				// 			},
+				// 		}),
+				// 	);
+				default:
+					console.warn("Unhandled message type:", payload.type);
+			}
+		};
+
+		ws.onclose = () => {
+			console.log("Disconnected");
+			setIsConnected(false);
+		};
+
+		ws.onerror = (error) => {
+			console.error("WebSocket Error:", error);
+		};
+
+		socketRef.current = ws;
+
+		// Cleanup on unmount
+		return () => {
+			ws.close();
+		};
+	}, []);
+
+	const connectionStatus = isConnected ? "Connected" : "Disconnected";
+
+	// const connectionStatus = {
+	// 	[ReadyState.CONNECTING]: "Connecting",
+	// 	[ReadyState.OPEN]: "Open",
+	// 	[ReadyState.CLOSING]: "Closing",
+	// 	[ReadyState.CLOSED]: "Closed",
+	// 	[ReadyState.UNINSTANTIATED]: "Uninstantiated",
+	// }[readyState];
+
+	useEffect(() => {
 		const storedData = window.localStorage.getItem("algo-playground-storage");
 		if (storedData) {
 			setBlockState(JSON.parse(storedData));
@@ -75,11 +135,33 @@ export default function GlobalStateProvider({
 	}, []);
 
 	const runApplication = () => {
-		console.log("Running application with blocks:", blockState.blocks);
+		const ws = socketRef.current;
+
+		if (!ws || ws.readyState !== WebSocket.OPEN) {
+			console.error("Cannot run: WebSocket is not connected.");
+			return;
+		}
+
+		const payload = {
+			type: "command",
+			kind: "auto",
+			action: "run",
+			payload: blockState, // The flat blocks dictionary + rootBlocks
+		};
+
+		console.log("Sending to Scala:", payload);
+		ws.send(JSON.stringify(payload));
 	};
 
 	const rerunApplication = () => {
-		console.log("Re-running application with blocks:", blockState.blocks);
+		console.log("Re-running application with blocks:", blockState);
+		// sendMessage(
+		// 	JSON.stringify({
+		// 		type: "command",
+		// 		action: "parseAst",
+		// 		payload: blockState,
+		// 	}),
+		// );
 	};
 
 	const resetApplication = () => {
@@ -89,7 +171,13 @@ export default function GlobalStateProvider({
 			)
 		) {
 			updateBlockState(() => ({
-				blocks: {},
+				blocks: ASTs.reduce(
+					(acc, ast) => {
+						acc[ast.id] = ast;
+						return acc;
+					},
+					{} as Record<string, Block>,
+				),
 				rootBlocks: [],
 				templates: ASTs.map((ast) => ast.id),
 			}));
@@ -125,11 +213,15 @@ export default function GlobalStateProvider({
 	};
 
 	const updateBlockState = (callback: (prev: BlockState) => BlockState) => {
-		window.localStorage.setItem(
-			"algo-playground-storage",
-			JSON.stringify(blockState),
-		);
-		setBlockState(callback);
+		setBlockState((prev) => {
+			const newState = callback(prev);
+			// Save the NEW state immediately
+			window.localStorage.setItem(
+				"algo-playground-storage",
+				JSON.stringify(newState),
+			);
+			return newState;
+		});
 	};
 
 	const onDragEnd = (event: any) => {
@@ -272,6 +364,7 @@ export default function GlobalStateProvider({
 				rootBlocks: blockState.rootBlocks,
 				templates: blockState.templates,
 				draggedBlockId,
+				isConnected,
 				updateBlockData,
 				runApplication,
 				rerunApplication,

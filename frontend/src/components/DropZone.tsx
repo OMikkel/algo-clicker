@@ -42,25 +42,31 @@ export default function DropZone({
 		maxElements !== undefined && (blockIds?.length ?? 0) >= maxElements;
 
 	// 2. Check if the type is accepted
-	const acceptsDraggedBlock = useMemo(() => {
-		if (!accepts) return true;
+	const acceptsDraggedBlock = !!(
+		draggedBlock &&
+		(!accepts ||
+			accepts.includes("Block") ||
+			accepts.includes(draggedBlock.type))
+	);
 
-		// Otherwise check for specific type match
-		return accepts.includes(draggedBlock?.type ?? "");
-	}, [draggedBlock, accepts]);
+	const targetSlot = slot;
 
-    const targetSlot = slot
+	const targetBlockId =
+		targetSlot === "root" ? "root" : id.replace(`-${targetSlot}`, "");
 
-    const targetBlockId =
-			targetSlot === "root"
-				? "root"
-				: id.replace(`-${targetSlot}`, "");
-
-    const isSelf = draggedBlockId === targetBlockId;
+	const isSelf = draggedBlockId === targetBlockId;
 
 	// 3. Final canDrop
-	const canDrop = isDropTarget && !isMaxElementsReached && !isSelf && acceptsDraggedBlock
-    console.log("Dropping block:", draggedBlock, "into slot:", `${id}`, "with accepts:", accepts);
+	const canDrop =
+		isDropTarget && !isMaxElementsReached && !isSelf && acceptsDraggedBlock;
+	console.log(
+		"Dropping block:",
+		draggedBlock,
+		"into slot:",
+		`${id}`,
+		"with accepts:",
+		accepts,
+	);
 	console.log(
 		`isDropTarget: ${isDropTarget}, isMaxElementsReached: ${isMaxElementsReached}, acceptsDraggedBlock: ${acceptsDraggedBlock}, canDrop: ${canDrop}`,
 	);
@@ -70,7 +76,7 @@ export default function DropZone({
 			ref={ref}
 			className={cn(
 				"relative flex flex-1 border-2 border-dashed p-2 flex-col gap-2 rounded-md min-h-12 bg-gray-200",
-                canDrop
+				canDrop
 					? "border-blue-500 bg-blue-50/10"
 					: "border-gray-500 bg-gray-200",
 				className,
