@@ -8,11 +8,12 @@ import BlockDataEditor from "./BlockDataEditor";
 export default function BaseBlock({
 	block,
 	preview,
+	disabled = false,
 }: {
 	block: BaseBlock | null;
 	preview?: boolean;
+	disabled?: boolean;
 }) {
-	console.log("Rendering block:", block);
 	if (!block) return <div className="p-2 bg-red-500">No block found</div>;
 	const config = BLOCK_REGISTRY[block.type];
 
@@ -28,6 +29,7 @@ export default function BaseBlock({
 				config.color,
 			)}
 			preview={preview}
+			disabled={disabled}
 		>
 			<div className="flex flex-col gap-3">
 				<div className="flex justify-between items-center border-b border-white/20 pb-1">

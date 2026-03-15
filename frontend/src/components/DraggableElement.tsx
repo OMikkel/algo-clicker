@@ -9,6 +9,7 @@ type Props = {
 	children?: React.ReactNode;
 	className?: string;
 	preview?: boolean;
+	disabled?: boolean;
 };
 
 export default function DraggableElement({
@@ -17,9 +18,10 @@ export default function DraggableElement({
 	children,
 	className,
 	preview = false,
+	disabled = false,
 }: Props) {
 	const { deleteBlock } = useGlobalStateContext();
-	const { ref, isDragging } = useDraggable({ id, type });
+	const { ref, isDragging } = useDraggable({ id, type, disabled: disabled });
 
 	return (
 		<div
@@ -31,9 +33,11 @@ export default function DraggableElement({
 			)}
 		>
 			{/* The actual drag handle - only this starts the drag */}
-			<div className="flex cursor-grab active:cursor-grabbing p-1 hover:bg-white/20 rounded h-min w-min">
-				⠿
-			</div>
+			{disabled && (
+				<div className="flex cursor-grab active:cursor-grabbing p-1 hover:bg-white/20 rounded h-min w-min">
+					⠿
+				</div>
+			)}
 
 			{/* Content area: clicks here won't trigger the IfBlock drag */}
 			<div className="flex-1">{children}</div>

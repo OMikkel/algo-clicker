@@ -6,9 +6,11 @@ import InitialBlock from "./Blocks/InitialBlock";
 export default function BlockSelector({
 	id,
 	preview = false,
+	disabled = false,
 }: {
 	id: BlockId;
 	preview?: boolean;
+	disabled?: boolean;
 }) {
 	const { blocks } = useGlobalStateContext();
 	const selectedBlock = blocks[id];
@@ -16,5 +18,7 @@ export default function BlockSelector({
 
 	if (selectedBlock.type === "InitialProgramWithList_A")
 		return <InitialBlock block={selectedBlock} />;
-	return <BaseBlock block={selectedBlock} preview={preview} />;
+	return (
+		<BaseBlock block={selectedBlock} preview={preview} disabled={disabled} />
+	);
 }

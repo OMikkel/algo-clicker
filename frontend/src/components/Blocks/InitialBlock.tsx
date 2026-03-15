@@ -39,6 +39,26 @@ export default function InitialBlock({ block }: { block: BaseBlock | null }) {
 					/>
 				</div>
 			)}
+			{config.slots[1] && (
+				<div key={config.slots[1].id} className="flex flex-col gap-1">
+					<label className="text-[10px] font-mono opacity-80 text-left">
+						{config.slots[1].label}
+					</label>
+					<DropZone
+						id={`${block.id}-${config.slots[1].id}`}
+						slot={config.slots[1].id}
+						accepts={config.slots[1].accepts}
+						maxElements={config.slots[1].max}
+						blockIds={
+							Array.isArray(block[config.slots[1].id])
+								? block[config.slots[1].id]
+								: block[config.slots[1].id]
+									? [block[config.slots[1].id]]
+									: []
+						}
+					/>
+				</div>
+			)}
 		</div>
 	);
 }

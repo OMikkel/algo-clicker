@@ -80,7 +80,7 @@ export default function DropZone({
 		>
 			{/* 1. Existing Blocks */}
 			{blockIds?.map((blockId) => (
-				<BlockSelector key={blockId} id={blockId} />
+				<BlockSelector key={blockId} id={blockId} preview={preview} />
 			))}
 
 			{/* 2. The Insertion Shadow */}

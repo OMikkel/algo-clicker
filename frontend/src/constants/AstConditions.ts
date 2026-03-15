@@ -180,9 +180,7 @@ export const BLOCK_REGISTRY: Record<AllBlockKeys, ASTDefinition> = {
     },
     IntVarLit: {
         color: "bg-purple-400",
-        slots: [
-            { id: "ident", label: "Variable Id", accepts: ["Id"], max: 1 }
-        ]
+        slots: []
     },
     IntVarListLookup: {
         color: "bg-purple-400",

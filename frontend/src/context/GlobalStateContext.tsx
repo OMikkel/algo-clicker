@@ -65,7 +65,7 @@ const initialBlockState = (
 			type: "ArrayLit",
 			id: ArrayLit_Initial_ID,
 			parentId: ArrayAssign_Initial_ID,
-			values: Array(10).map(() => Math.ceil(Math.random() * 100)),
+			values: Array.from({ length: 10 }, () => Math.ceil(Math.random() * 100)),
 		},
 	},
 	rootBlocks: [InitialProgramWithList_A_ID],
