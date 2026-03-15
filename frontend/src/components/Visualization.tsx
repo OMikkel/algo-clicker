@@ -28,19 +28,15 @@ function Visualization({ width, height }: VisualizationProps) {
 	const { env } = useGlobalStateContext();
 
 	useEffect(() => {
+		document.addEventListener("algoclickertrace",(e) => console.log(e.detail))
 		const canvas = canvasRef.current;
 		if (!canvas) return;
 
 		const ctx = canvas.getContext("2d");
 		if (!ctx) return;
 		ctx.textBaseline = "top";
-		const objs = generateEnvironmentDrawables(env, ctx, height, width);
-
-		const [leftObj, rightObj] = [objs[1], objs[4]];
-
-		const animation =
-			leftObj && rightObj ? operations.swap(leftObj, rightObj) : null;
-
+		
+		
 		const updateEyeFocusFromPointer = (event: MouseEvent) => {
 			const rect = canvas.getBoundingClientRect();
 			const pointerX = event.clientX - rect.left;
@@ -59,6 +55,28 @@ function Visualization({ width, height }: VisualizationProps) {
 
 		let animationFrameId: number;
 
+		let swapEvent = null
+		let new_env = null
+		let [index1,index2] = [null,null]
+		document.addEventListener("algoclickertrace",(e) => {
+			let {event,env} = e.detail
+			if (event == "ArraySwap" ) {
+				swapEvent = event
+				new_env = env
+				index1 = e.detail["index1"]
+				index2 = e.detail["index2"]
+				console.log("algoclicker",index1,index2);
+				
+			}
+		})
+		const objs = generateEnvironmentDrawables(new_env || env, ctx, height, width);
+	
+		let [leftObj, rightObj] = swapEvent && index1 != null && index2 != null ? [objs[index1], objs[index2]] : [null,null];
+		console.log(leftObj,rightObj);
+		
+		const animation =
+			leftObj && rightObj ? operations.swap(leftObj, rightObj) : null;
+
 		const render = () => {
 			const time = (performance.now() - startTimeRef.current) / 1000;
 
@@ -76,6 +94,7 @@ function Visualization({ width, height }: VisualizationProps) {
 			let rhand = rHandPosDefault;
 			let lhand = lHandPosDefault;
 			if (animation) {
+				console.log("yes we are here")
 				rhand = keyframe(time, animation.rHandPos);
 				lhand = keyframe(time, animation.lHandPos);
 				const leftObjFrame = keyframe(time, animation.leftObj);
