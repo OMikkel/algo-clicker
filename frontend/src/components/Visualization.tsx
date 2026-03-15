@@ -28,6 +28,7 @@ function Visualization({ width, height }: VisualizationProps) {
 	const { env } = useGlobalStateContext();
 
 	useEffect(() => {
+		document.addEventListener("algoclickertrace",(e) => console.log(e.detail))
 		const canvas = canvasRef.current;
 		if (!canvas) return;
 
@@ -35,8 +36,9 @@ function Visualization({ width, height }: VisualizationProps) {
 		if (!ctx) return;
 		ctx.textBaseline = "top";
 		const objs = generateEnvironmentDrawables(env, ctx, height, width);
-
-		const [leftObj, rightObj] = [objs[1], objs[4]];
+		
+		const {index1,index2,..._v} = (env as unknown as any)
+		let [leftObj, rightObj] = _v["ArraySwap"] ? [objs[index1+1], objs[index2+1]] : [null,null];
 
 		const animation =
 			leftObj && rightObj ? operations.compare(leftObj, rightObj) : null;
@@ -54,8 +56,15 @@ function Visualization({ width, height }: VisualizationProps) {
 			eyeFocusRef.current = new Vec2D(width / 2, height / 2);
 		};
 
-		canvas.addEventListener("mousemove", updateEyeFocusFromPointer);
-		canvas.addEventListener("mouseleave", resetEyeFocus);
+		const maybeResetWhenLeavingWindow = (event: MouseEvent) => {
+			if (!event.relatedTarget) {
+				resetEyeFocus();
+			}
+		};
+
+		window.addEventListener("mousemove", updateEyeFocusFromPointer);
+		window.addEventListener("mouseout", maybeResetWhenLeavingWindow);
+		window.addEventListener("blur", resetEyeFocus);
 
 		let animationFrameId: number;
 
@@ -80,8 +89,8 @@ function Visualization({ width, height }: VisualizationProps) {
 				lhand = keyframe(time, animation.lHandPos);
 				const leftObjFrame = keyframe(time, animation.leftObj);
 				const rightObjFrame = keyframe(time, animation.rightObj);
-				leftObj.setPosition(leftObjFrame);
-				rightObj.setPosition(rightObjFrame);
+				leftObj?.setPosition(leftObjFrame);
+				rightObj?.setPosition(rightObjFrame);
 			}
 
 			drawAlgo.drawArmsAndHands(
@@ -104,8 +113,9 @@ function Visualization({ width, height }: VisualizationProps) {
 
 		return () => {
 			cancelAnimationFrame(animationFrameId);
-			canvas.removeEventListener("mousemove", updateEyeFocusFromPointer);
-			canvas.removeEventListener("mouseleave", resetEyeFocus);
+			window.removeEventListener("mousemove", updateEyeFocusFromPointer);
+			window.removeEventListener("mouseout", maybeResetWhenLeavingWindow);
+			window.removeEventListener("blur", resetEyeFocus);
 		};
 	}, [env, height, width]);
 
