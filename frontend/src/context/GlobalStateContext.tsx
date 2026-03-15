@@ -112,10 +112,13 @@ export default function GlobalStateProvider({
 
 	useEffect(() => {
 		// Initialize connection
-		const ws = new WebSocket("ws://10.192.84.70:8080");
+		// Allow overriding the backend URL at build/runtime via Vite env vars.
+		const defaultBackendUrl = import.meta.env.VITE_SCALA_BACKEND_URL ||
+			`${window.location.protocol === "https:" ? "wss" : "ws"}://${window.location.hostname}:8080`;
+		const ws = new WebSocket(defaultBackendUrl);
 
 		ws.onopen = () => {
-			console.log("Connected to Scala Backend");
+			console.log("Connected to Scala Backend", defaultBackendUrl);
 		};
 
 		ws.onmessage = (event) => {

@@ -1,0 +1,31 @@
+version: "3.9"
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    networks:
+      - appnet
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "5173:5173"
+    environment:
+      # Override in your deployment if needed
+      VITE_SCALA_BACKEND_URL: "ws://backend-algo.froemosen.dk"
+    depends_on:
+      - backend
+    networks:
+      - appnet
+    restart: unless-stopped
+
+networks:
+  appnet:
+    driver: bridge
