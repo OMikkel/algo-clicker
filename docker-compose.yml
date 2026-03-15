@@ -19,7 +19,7 @@ services:
       - "5173:5173"
     environment:
       # Override in your deployment if needed
-      VITE_SCALA_BACKEND_URL: "ws://backend-algo.froemosen.dk"
+      VITE_SCALA_BACKEND_URL: "wss://backend-algo.froemosen.dk"
     depends_on:
       - backend
     networks:
