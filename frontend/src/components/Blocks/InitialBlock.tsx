@@ -1,7 +1,6 @@
 import { BLOCK_REGISTRY } from "../../constants/AstConditions";
 import type { BaseBlock } from "../../types/blocks";
 import DropZone from "../DropZone";
-import BlockDataEditor from "./BlockDataEditor";
 
 export default function InitialBlock({ block }: { block: BaseBlock | null }) {
 	console.log("Rendering INITIAL block:", block);
@@ -14,9 +13,14 @@ export default function InitialBlock({ block }: { block: BaseBlock | null }) {
 	return (
 		<div className="flex flex-col gap-3">
 			<div className="flex justify-between items-center border-b border-white/20 pb-1">
-				<span className="font-bold uppercase text-xs">{block.type}</span>
-				{/* Render unique inputs like IntLit values here */}
-				<BlockDataEditor block={block} />
+				<p className="font-bold uppercase text-xs">
+					{config.displayTitle || block.type}
+				</p>
+				<span>
+					<p className="text-[10px] opacity-80 text-left">
+						{config.helpText || "No help text available."}
+					</p>
+				</span>
 			</div>
 			{config.slots[0] && (
 				<div key={config.slots[0].id} className="flex flex-col gap-1">
@@ -24,7 +28,9 @@ export default function InitialBlock({ block }: { block: BaseBlock | null }) {
 						{config.slots[0].label}
 					</label>
 					<DropZone
-						preview={true}
+						template={false}
+						disabled={true}
+						editable={false}
 						id={`${block.id}-${config.slots[0].id}`}
 						slot={config.slots[0].id}
 						accepts={config.slots[0].accepts}
@@ -34,6 +40,29 @@ export default function InitialBlock({ block }: { block: BaseBlock | null }) {
 								? block[config.slots[0].id]
 								: block[config.slots[0].id]
 									? [block[config.slots[0].id]]
+									: []
+						}
+					/>
+				</div>
+			)}
+			{config.slots[1] && (
+				<div key={config.slots[1].id} className="flex flex-col gap-1">
+					<label className="text-[10px] font-mono opacity-80 text-left">
+						{config.slots[1].label}
+					</label>
+					<DropZone
+						template={false}
+						disabled={false}
+						editable={true}
+						id={`${block.id}-${config.slots[1].id}`}
+						slot={config.slots[1].id}
+						accepts={config.slots[1].accepts}
+						maxElements={config.slots[1].max}
+						blockIds={
+							Array.isArray(block[config.slots[1].id])
+								? block[config.slots[1].id]
+								: block[config.slots[1].id]
+									? [block[config.slots[1].id]]
 									: []
 						}
 					/>

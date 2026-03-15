@@ -5,16 +5,28 @@ import InitialBlock from "./Blocks/InitialBlock";
 
 export default function BlockSelector({
 	id,
-	preview = false,
+	template = false,
+	disabled = false,
+	editable = true,
 }: {
 	id: BlockId;
-	preview?: boolean;
+	template?: boolean;
+	disabled?: boolean;
+	editable?: boolean;
 }) {
 	const { blocks } = useGlobalStateContext();
-	const selectedBlock = blocks[id];
-	console.log("BlockSelector found block:", selectedBlock);
+	const block = blocks[id];
+	if (!block) return null; // Safety first!
+	console.log("BlockSelector found block:", block);
 
-	if (selectedBlock.type === "InitialProgramWithList_A")
-		return <InitialBlock block={selectedBlock} />;
-	return <BaseBlock block={selectedBlock} preview={preview} />;
+	if (block.type === "InitialProgramWithList_A")
+		return <InitialBlock block={block} />;
+	return (
+		<BaseBlock
+			block={block}
+			template={template}
+			disabled={disabled}
+			editable={editable}
+		/>
+	);
 }

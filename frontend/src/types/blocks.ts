@@ -10,6 +10,7 @@ export interface BaseBlock {
     id: BlockId;
     type: string;
     parentId: BlockId | "root"
+    parentSlot?: string; // New field to track which slot of the parent this block occupies
 }
 
 export interface BoolLitBlock extends BaseBlock {

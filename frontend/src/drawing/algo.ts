@@ -1,10 +1,10 @@
 
 const drawAlgo = {
-    drawHeadAndBody: (xPos: number, yPos: number, ctx: CanvasRenderingContext2D) => {
+    drawHeadAndBody: (xPos: number, yPos: number, eyeFocusX: number, eyeFocusY: number, ctx: CanvasRenderingContext2D) => {
         const perspective: number = 0.3;
         drawBody(xPos, yPos + 170, 50, 90, perspective, ctx);
         drawNeck(xPos, yPos + 80, 20, 90, perspective, ctx);
-        drawHead(xPos, yPos, 60, ctx);
+        drawHead(xPos, yPos, 60, eyeFocusX, eyeFocusY, ctx);
     },
     drawArmsAndHands: (algoXPos: number, algoYPos: number, lArmXPos: number, lArmYPos: number, rArmXPos: number, rArmYPos: number, ctx: CanvasRenderingContext2D) => {
         drawArm(algoXPos - 50, algoYPos + 95, Math.PI, lArmXPos, lArmYPos, -Math.PI / 2, 10, ctx);
@@ -12,26 +12,45 @@ const drawAlgo = {
         drawArm(algoXPos + 50, algoYPos + 95, 0, rArmXPos, rArmYPos, -Math.PI / 2, 10, ctx);
         drawHand(rArmXPos, rArmYPos, 30, ctx);
     },
+    // For testing
+    drawEyeFocusPoint: (eyeFocusX: number, eyeFocusY: number, ctx: CanvasRenderingContext2D) => {
+        drawCircle(eyeFocusX, eyeFocusY, 10, "yellow", ctx);
+    }
 }
 
 
 
 
-function drawHead(xPos: number, yPos: number, size: number, ctx: CanvasRenderingContext2D) {
+function drawHead(xPos: number, yPos: number, size: number, eyeFocusX: number, eyeFocusY: number, ctx: CanvasRenderingContext2D) {
     drawCircle(xPos, yPos, size, "rgb(65, 179, 255)", ctx);
 
-    drawEye(xPos + size * 0.4, yPos + size * 0.1, size * 0.3, ctx);
-    drawEye(xPos - size * 0.4, yPos + size * 0.1, size * 0.3, ctx);
+    drawEye(xPos + size * 0.4, yPos + size * 0.1, size * 0.3, eyeFocusX, eyeFocusY, ctx);
+    drawEye(xPos - size * 0.4, yPos + size * 0.1, size * 0.3, eyeFocusX, eyeFocusY, ctx);
 
     drawCylinder(xPos, yPos - size * 0.85, size * 0.03, size * 0.6, 0.3, "rgb(0, 153, 255)", "black", ctx)
     drawCircle(xPos, yPos - size * 1.5, size * 0.1, "rgb(65, 179, 255)", ctx);
 }
 
-function drawEye(xPos: number, yPos: number, size: number, ctx: CanvasRenderingContext2D) {
+function drawEye(xPos: number, yPos: number, size: number, eyeFocusX: number, eyeFocusY: number, ctx: CanvasRenderingContext2D) {
     drawCircle(xPos, yPos, size, "white", ctx);
 
+    // All of this logic is bad in some ways.
+    const eyeToPointVectorX: number = eyeFocusX - xPos;
+    const eyeToPointVectorY: number = eyeFocusY - yPos;
+    const eyeToPointVectorLength: number = Math.sqrt(eyeToPointVectorX*eyeToPointVectorX + eyeToPointVectorY*eyeToPointVectorY)
 
-    drawPupil(xPos, yPos + size * 0.4, size / 2, ctx);
+    let eyeToPointUnitVectorX: number = (eyeToPointVectorX / eyeToPointVectorLength);
+    let eyeToPointUnitVectorY: number = (eyeToPointVectorY / eyeToPointVectorLength);
+
+    if (eyeToPointVectorLength < 1) {
+        eyeToPointUnitVectorX = eyeToPointVectorX;
+        eyeToPointUnitVectorY = eyeToPointVectorY;
+    } else {
+        eyeToPointUnitVectorX *= size/2;
+        eyeToPointUnitVectorY *= size/2;
+    }
+
+    drawPupil(xPos + eyeToPointUnitVectorX, yPos + eyeToPointUnitVectorY, size / 2, ctx);
 }
 
 function drawPupil(xPos: number, yPos: number, size: number, ctx: CanvasRenderingContext2D) {

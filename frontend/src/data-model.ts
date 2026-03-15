@@ -7,3 +7,10 @@ export interface Environment {
     "arrEnv":{[key:string]: number[]},
     "parentEnv": Environment | null
 }
+
+export function emptyEnvironment() {
+    return {"intEnv": {},
+    "boolEnv":{},
+    "arrEnv":{},
+    "parentEnv": null}
+}
