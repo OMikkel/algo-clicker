@@ -11,7 +11,7 @@ export type ASTDefinition = {
     displayTitle?: string;
     helpText?: string;
     slots: Slot[];
-    editors
+    editors?: any;
 };
 
 // 2. Define Category Arrays (for Reusability and Validation)
