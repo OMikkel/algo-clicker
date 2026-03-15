@@ -112,16 +112,10 @@ export default function GlobalStateProvider({
 
 	useEffect(() => {
 		// Initialize connection
-		// Uses the Vite environment variable `VITE_BACKEND_WS_URL` if provided.
-		// Defaults to a sensible dev vs production host.
-		const defaultBackendUrl = import.meta.env.DEV
-			? "ws://localhost:8081" // local dev backend (if running without the proxy)
-			: "wss://algo-backend.froemosen.dk"; // production / tunnel host
-		const backendWsUrl = import.meta.env.VITE_BACKEND_WS_URL || defaultBackendUrl;
-		const ws = new WebSocket(backendWsUrl);
+		const ws = new WebSocket("ws://10.192.84.70:8080");
 
 		ws.onopen = () => {
-			console.log("Connected to Scala Backend", backendWsUrl);
+			console.log("Connected to Scala Backend");
 		};
 
 		ws.onmessage = (event) => {
