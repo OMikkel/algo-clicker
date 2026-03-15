@@ -50,10 +50,10 @@ object Interpreter {
 
   def eval(s: Statement, env: Env): Unit = s match {
     case IntAssign(variable, value) => setInt(getId(variable), eval(value, env), env)
-    case BoolAssign(variable, value) => setBool(variable.id, eval(value, env), env)
+    case BoolAssign(variable, value) => setBool(variable.ident, eval(value, env), env)
     case ArrayAssign(variable, value) =>
-      setArr(variable.id, eval(value, env), env)
-      if (variable.id == "A") trace(TraceArrAssign_A(eval(value, env), variable.id), None, env)
+      setArr(variable.ident, eval(value, env), env)
+      if (variable.ident == "A") trace(TraceArrAssign_A(eval(value, env), variable.ident), None, env)
     case If(cond, thenBlock, elseBlock) => if (eval(cond, env)) eval(thenBlock, env) else eval(elseBlock, env)
     case While(cond, body) => while (eval(cond, env)) eval(body, env)
     case Swap(a, b) =>
@@ -67,7 +67,7 @@ object Interpreter {
       if (a.isInstanceOf[IntVarListLookup] && b.isInstanceOf[IntVarListLookup]) {
         val aIndex = a.asInstanceOf[IntVarListLookup].index
         val bIndex = b.asInstanceOf[IntVarListLookup].index
-        if (a.asInstanceOf[IntVarListLookup].id == b.asInstanceOf[IntVarListLookup].id) trace(TraceArrSwap(eval(a.asInstanceOf[IntVarListLookup].index, env), eval(b.asInstanceOf[IntVarListLookup].index, env), a.asInstanceOf[IntVarListLookup].id), None, env)
+        if (a.asInstanceOf[IntVarListLookup].ident == b.asInstanceOf[IntVarListLookup].ident) trace(TraceArrSwap(eval(a.asInstanceOf[IntVarListLookup].index, env), eval(b.asInstanceOf[IntVarListLookup].index, env), a.asInstanceOf[IntVarListLookup].ident), None, env)
       }
     case ArrayInsert(arr, value, index) =>
       arr match {
