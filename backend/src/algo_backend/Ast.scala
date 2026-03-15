@@ -6,8 +6,7 @@ object Ast {
 
   abstract class AstNode
 
-
-
+  case class InitialProgramWithList_A(decl_A: ArrayAssign, solution: AstNode) extends AstNode
 
   abstract sealed class IntType extends AstNode
 
