@@ -26,7 +26,7 @@ function Visualization({ width, height }: VisualizationProps) {
 
 		const [leftObj,rightObj] = [objs[1],objs[4]]
 		
-		const animation = leftObj && rightObj ? operations.swap(leftObj,rightObj) : null
+		const animation = leftObj && rightObj ? operations.compare(leftObj,rightObj) : null
 
 		const render = () => {
 			const time = (performance.now() - startTime) / 1000;
@@ -94,6 +94,7 @@ const lHandGrabOffset = new Vec2D(-15,35)
 const lHandPosDefault = new Vec2D(100, 500);
 const rHandGrabOffset = new Vec2D(-15,35)
 const rHandPosDefault = new Vec2D(300, 500);
+const eyeFocusDefault = new Vec2D(200, 500);
 
 const operations = {
 	"swap": (left: DrawableElement,right: DrawableElement) => {
@@ -102,79 +103,89 @@ const operations = {
 		const viaLeftPoint = lHandPosDefault.slerp(leftPos, 0.3);
 		const viaRightPoint = rHandPosDefault.slerp(rightPos, 0.3);
 		return ({
-				lHandPos: [
-					[0, lHandPosDefault],
-					[1, leftPos.subtract(lHandGrabOffset).translateX(left.size.X()/2)],
-					[2, viaLeftPoint.subtract(lHandGrabOffset).translateX(left.size.X()/2)],
-					[3, rightPos.subtract(lHandGrabOffset).translateX(left.size.X()/2)],
-					[4, lHandPosDefault],
-				],
-				leftObj: [
-					[0, leftPos],
-					[1, leftPos],
-					[2, viaLeftPoint],
-					[3, rightPos],
-					[4, rightPos],
-				],
-				rHandPos: [
-					[0, rHandPosDefault],
-					[1, rightPos.subtract(rHandGrabOffset)],
-					[2, viaRightPoint.subtract(rHandGrabOffset)],
-					[3, leftPos.subtract(rHandGrabOffset)],
-					[4, rHandPosDefault],
-				],
-				rightObj: [
-					[0, rightPos],
-					[1, rightPos],
-					[2, viaRightPoint],
-					[3, leftPos],
-					[4, leftPos],
-					[5, leftPos],
-				],
-				eyeFocus: [
-					[0, new Vec2D(200, 500)],
-					[1, new Vec2D(200, 600)],
-					[2, new Vec2D(200, 500)],
-					[3, new Vec2D(200, 600)],
-					[4, new Vec2D(200, 500)],
-				],
-			})}
-}
-
-function getAnimation(operation: string, elements: DrawableElement[]) {
-	
-	const obj0pos = elements[0].position;
-	const obj3pos = elements[2].position;
-	
-	switch (operation) {
-		case "liftAnimation": {
-			return {
-				rHandPos: [
-					[0, rHandPosDefault],
-					[1, obj0pos],
-					[2, viaLiftPoint],
-					[3, obj3pos],
-					[4, rHandPosDefault],
-				],
-				leftObj: [
-					[0, obj0pos],
-					[1, obj0pos],
-					[2, viaLiftPoint],
-					[3, obj3pos],
-					[4, obj3pos],
-					[5, obj3pos],
-				],
-				rightObj: [
-					[0, obj3pos],
-					[1, obj3pos],
-					[2, obj3pos],
-					[3, obj0pos],
-					[4, obj0pos],
-					[5, obj0pos],
-				],
-			};
-		}
-	}
+			lHandPos: [
+				[0, lHandPosDefault],
+				[1, leftPos.subtract(lHandGrabOffset).translateX(left.size.X()/2)],
+				[2, viaLeftPoint.subtract(lHandGrabOffset).translateX(left.size.X()/2)],
+				[3, rightPos.subtract(lHandGrabOffset).translateX(left.size.X()/2)],
+				[4, lHandPosDefault],
+			],
+			leftObj: [
+				[0, leftPos],
+				[1, leftPos],
+				[2, viaLeftPoint],
+				[3, rightPos],
+				[4, rightPos],
+			],
+			rHandPos: [
+				[0, rHandPosDefault],
+				[1, rightPos.subtract(rHandGrabOffset)],
+				[2, viaRightPoint.subtract(rHandGrabOffset)],
+				[3, leftPos.subtract(rHandGrabOffset)],
+				[4, rHandPosDefault],
+			],
+			rightObj: [
+				[0, rightPos],
+				[1, rightPos],
+				[2, viaRightPoint],
+				[3, leftPos],
+				[4, leftPos],
+				[5, leftPos],
+			],
+			eyeFocus: [
+				[0, eyeFocusDefault],
+				[1, new Vec2D(200, 600)],
+				[3, new Vec2D(200, 600)],
+				[4, eyeFocusDefault],
+			],
+		})
+	},
+	"compare": (left: DrawableElement,right: DrawableElement) => {
+		const leftPos = left.position
+		const rightPos = right.position
+		const leftComparePoint = new Vec2D(30, 370);
+		const rightComparePoint = new Vec2D(300, 370);
+		return ({
+			lHandPos: [
+				[0, lHandPosDefault],
+				[1, leftPos.subtract(lHandGrabOffset).translateX(left.size.X()/2)],
+				[2, leftComparePoint.subtract(lHandGrabOffset).translateX(left.size.X()/2)],
+				[5, leftComparePoint.subtract(lHandGrabOffset).translateX(left.size.X()/2)],
+				[6, leftPos.subtract(lHandGrabOffset).translateX(left.size.X()/2)],
+				[7, lHandPosDefault],
+			],
+			leftObj: [
+				[1, leftPos],
+				[2, leftComparePoint],
+				[5, leftComparePoint],
+				[6, leftPos],
+			],
+			rHandPos: [
+				[0, rHandPosDefault],
+				[1, rightPos.subtract(lHandGrabOffset).translateX(right.size.X()/2)],
+				[2, rightComparePoint.subtract(lHandGrabOffset).translateX(right.size.X()/2)],
+				[5, rightComparePoint.subtract(lHandGrabOffset).translateX(right.size.X()/2)],
+				[6, rightPos.subtract(lHandGrabOffset).translateX(right.size.X()/2)],
+				[7, rHandPosDefault],
+			],
+			rightObj: [
+				[1, rightPos],
+				[2, rightComparePoint],
+				[5, rightComparePoint],
+				[6, rightPos],
+			],
+			eyeFocus: [
+				[1, eyeFocusDefault],
+				[2, leftComparePoint],
+				[2.5, leftComparePoint],
+				[3, rightComparePoint],
+				[3.5, rightComparePoint],
+				[4, leftComparePoint],
+				[5, leftComparePoint],
+				[5.5, eyeFocusDefault],
+			],
+		})
+	},
 }
 
 export default Visualization;
