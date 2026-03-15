@@ -20,11 +20,11 @@ const drawAlgo = {
 function drawHead(xPos: number, yPos: number, size: number, ctx: CanvasRenderingContext2D) {
     drawCircle(xPos, yPos, size, "rgb(65, 179, 255)", ctx);
 
-    drawEye(xPos+size*0.4, yPos + size * 0.1, size * 0.3, ctx);
-    drawEye(xPos-size*0.4, yPos + size * 0.1, size * 0.3, ctx);
+    drawEye(xPos + size * 0.4, yPos + size * 0.1, size * 0.3, ctx);
+    drawEye(xPos - size * 0.4, yPos + size * 0.1, size * 0.3, ctx);
 
     drawCylinder(xPos, yPos - size * 0.85, size * 0.03, size * 0.6, 0.3, "rgb(0, 153, 255)", "black", ctx)
-    drawCircle(xPos, yPos - size * 1.5, size*0.1, "rgb(65, 179, 255)", ctx);
+    drawCircle(xPos, yPos - size * 1.5, size * 0.1, "rgb(65, 179, 255)", ctx);
 }
 
 function drawEye(xPos: number, yPos: number, size: number, ctx: CanvasRenderingContext2D) {
@@ -36,7 +36,7 @@ function drawEye(xPos: number, yPos: number, size: number, ctx: CanvasRenderingC
 
 function drawPupil(xPos: number, yPos: number, size: number, ctx: CanvasRenderingContext2D) {
     drawCircle(xPos, yPos, size, "black", ctx);
-    drawCircle(xPos + size*0.4, yPos - size*0.4, size*0.3, "white", ctx);
+    drawCircle(xPos + size * 0.4, yPos - size * 0.4, size * 0.3, "white", ctx);
 }
 
 
@@ -88,8 +88,8 @@ function drawHand(xPos: number, yPos: number, size: number, ctx: CanvasRendering
 
     ctx.fillStyle = "rgb(255, 255, 255)";
 
-    ctx.fillRect(-radius - tipWidth / 2, tipHeight - size*0.25, tipWidth, tipHeight);
-    ctx.fillRect(radius - tipWidth / 2, tipHeight - size*0.25, tipWidth, tipHeight);
+    ctx.fillRect(-radius - tipWidth / 2, tipHeight - size * 0.25, tipWidth, tipHeight);
+    ctx.fillRect(radius - tipWidth / 2, tipHeight - size * 0.25, tipWidth, tipHeight);
 
     ctx.restore();
 }

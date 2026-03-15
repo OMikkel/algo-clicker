@@ -8,7 +8,7 @@ import Toolbar from "./Toolbar";
 function App() {
 	return (
 		<GlobalStateProvider>
-			<div className="flex flex-row gap-3 p-3">
+			<div className="flex flex-row gap-3 p-3 w-screen">
 				<Toolbar />
 				<BlockCanvas />
 				<VisualizationFrame />

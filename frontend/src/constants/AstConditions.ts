@@ -1,4 +1,4 @@
-const IntType = ["IntLit", "IntPlus", "IntMinus", "IntMult", "IntDiv", "IntMod", "IntArrayLength"];
+const IntType = ["IntLit", "IntVarLit", "IntPlus", "IntMinus", "IntMult", "IntDiv", "IntMod", "IntArrayLength"];
 const BoolType = ["BoolLit", "BoolVar", "BoolGreater", "BoolGreaterEq", "BoolLess", "BoolLessEq", "BoolEq", "BoolNeq", "BoolAnd", "BoolOr", "BoolNot"];
 const ArrayType = ["ArrayLit", "ArrayVar", "ArrayRange", "ArrayConcat"];
 const Statement = ["IntAssign", "BoolAssign", "If", "While", "Swap", "ArrayInsert", "ArrayRemove"];
@@ -31,6 +31,12 @@ export const BLOCK_REGISTRY: Record<string, AST> = {
         color: "bg-purple-500",
         slots: []
     },
+    IntVarLit: {
+        color: "bg-purple-400",
+        slots: [
+            { id: "ident", label: "Variable Id", accepts: ["Id"], max: 1 }
+        ]
+    },
     IntPlus: {
         color: "bg-blue-500",
         slots: [
@@ -45,6 +51,25 @@ export const BLOCK_REGISTRY: Record<string, AST> = {
             { id: "arr", label: "Array", accepts: ArrayType, max: 1 },
             { id: "startIndex", label: "From", accepts: IntType, max: 1 },
             { id: "endIndex", label: "To", accepts: IntType, max: 1 },
+        ]
+    },
+    ArrayAssign: {
+        color: "bg-purple-600",
+        slots: [
+            { id: "variable", label: "Variable", accepts: ["ArrayVar"], max: 1 },
+            { id: "value", label: "Value", accepts: ArrayType, max: 1 },
+        ]
+    },
+    ArrayVar: {
+        color: "bg-purple-500",
+        slots: [
+            { id: "ident", label: "Array Id", accepts: ["Id"], max: 1 }
+        ]
+    },
+    ArrayLit: {
+        color: "bg-green-500",
+        slots: [
+            { id: "values", label: "Values (comma-separated)", accepts: ["List[Int]"], max: 1 }
         ]
     }
     // ... add others here ...

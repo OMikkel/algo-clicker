@@ -7,7 +7,7 @@ export default function Toolbar({}: Props) {
 	const { templates } = useGlobalStateContext();
 
 	return (
-		<div className="w-64 bg-gray-800 p-4 rounded-md">
+		<div className="w-3/3 bg-gray-800 p-4 rounded-md">
 			<h2 className="text-white text-lg font-bold mb-4">Toolbar</h2>
 			{templates.map((templateId) => (
 				<BlockSelector key={templateId} id={templateId} />

@@ -52,9 +52,11 @@ export default function GlobalStateProvider({
 	const socketRef = useRef<WebSocket | null>(null);
 	const [draggedBlockId, setDraggedBlockId] = useState<BlockId | null>(null);
 
+	console.log("Creating ASTs from BLOCK_REGISTRY:", BLOCK_REGISTRY);
 	const ASTs: Block[] = Object.keys(BLOCK_REGISTRY).map((key) =>
 		createBlockFromAST(key, "template", ""),
 	);
+	console.log("ASTs:", ASTs);
 	const [blockState, setBlockState] = useState<BlockState>({
 		...testSampleInts,
 		blocks: {
