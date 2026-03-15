@@ -1,9 +1,10 @@
 import { DragDropProvider, DragOverlay } from "@dnd-kit/react";
 import React, { useEffect, useRef, useState } from "react";
 import { BLOCK_REGISTRY } from "../constants/AstConditions";
+import { emptyEnvironment, type Environment } from "../data-model";
 import type { Block, BlockId, Blocks } from "../types/blocks";
 import { createBlockFromAST } from "../utils/objects";
-import { emptyEnvironment, type Environment } from "../data-model";
+import { FlameKindling } from "lucide-react";
 
 export type BlockState = {
 	blocks: Blocks;
@@ -18,11 +19,14 @@ type GlobalState = {
 	rootBlocks: BlockId[];
 	templates: BlockId[];
 	draggedBlockId: BlockId | null;
+	errorMessage: string | null;
+	runState: "done" | "idle" | "running" | "error";
 	deleteBlock: (blockId: string) => void;
 	updateBlockData: <T>(blockId: string, newData: Partial<T>) => void;
 	runApplication: () => void;
 	rerunApplication: () => void;
 	resetApplication: () => void;
+	stepForward: () => void;
 };
 
 const ASTs: Block[] = Object.keys(BLOCK_REGISTRY).map((key) =>
@@ -98,6 +102,10 @@ export default function GlobalStateProvider({
 	children: React.ReactNode;
 }) {
 	const socketRef = useRef<WebSocket | null>(null);
+	const [errorMessage, setErrorMessage] = useState<string | null>(null);
+	const [runState, setRunState] = useState<
+		"done" | "idle" | "running" | "error"
+	>("done");
 	const [draggedBlockId, setDraggedBlockId] = useState<BlockId | null>(null);
 
 	const InitialProgramWithList_A_ID = useRef<BlockId>(
@@ -118,7 +126,7 @@ export default function GlobalStateProvider({
 
 	useEffect(() => {
 		// Initialize connection
-		const ws = new WebSocket("ws://10.192.84.70:8080");
+		const ws = new WebSocket(import.meta.env.VITE_SCALA_BACKEND_URL);
 
 		ws.onopen = () => {
 			console.log("Connected to Scala Backend");
@@ -130,10 +138,13 @@ export default function GlobalStateProvider({
 			// Handle server responses here (e.g., visualization updates)
 			switch (payload.type) {
 				case "trace":
+					setRunState("idle");
 					updateBlockState((p) => ({ ...p, env: payload }));
 					break;
 				case "error":
 					console.warn("Error from server:", payload.message);
+					setErrorMessage(payload.message);
+					setRunState("done");
 
 					// const causingBlockIdMatch = payload.message.match(/Block '(\w+)'/);
 					// console.log("Regex match result:", causingBlockIdMatch);
@@ -155,6 +166,7 @@ export default function GlobalStateProvider({
 				// 	);
 				default:
 					console.warn("Unhandled message type:", payload.type);
+					setRunState("done");
 			}
 		};
 
@@ -206,17 +218,30 @@ export default function GlobalStateProvider({
 
 		console.log("Sending to Scala:", payload);
 		ws.send(JSON.stringify(payload));
+		setRunState("running");
+	};
+
+	const stepForward = () => {
+		const ws = socketRef.current;
+
+		if (!ws || ws.readyState !== WebSocket.OPEN) {
+			console.error("Cannot step forward: WebSocket is not connected.");
+			return;
+		}
+
+		const payload = {
+			type: "continue",
+			kind: "auto",
+			action: "continue",
+		};
+
+		ws.send(JSON.stringify(payload));
+		setRunState("running");
 	};
 
 	const rerunApplication = () => {
 		console.log("Re-running application with blocks:", blockState);
-		// sendMessage(
-		// 	JSON.stringify({
-		// 		type: "command",
-		// 		action: "parseAst",
-		// 		payload: blockState,
-		// 	}),
-		// );
+		runApplication();
 	};
 
 	const resetApplication = () => {
@@ -576,11 +601,14 @@ export default function GlobalStateProvider({
 				rootBlocks: blockState.rootBlocks,
 				templates: blockState.templates,
 				draggedBlockId,
+				errorMessage,
+				runState,
 				deleteBlock,
 				updateBlockData,
 				runApplication,
 				rerunApplication,
 				resetApplication,
+				stepForward,
 				env: blockState.env,
 			}}
 		>
