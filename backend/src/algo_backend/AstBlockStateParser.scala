@@ -18,6 +18,10 @@ object AstBlockStateParser {
       case other => other
     }
 
+    println(s"blocks: ${payload.get("blocks").map(_.asInstanceOf[Map[String, Any]].keys.toList).getOrElse("missing")}, rootBlocks: ${payload.get("rootBlocks").getOrElse("missing")}")
+    println(s"Normalized kind: '$normalizedKind'")
+    println(s"Payload keys: ${payload.keys.toList}")
+
     for {
       blocks <- readBlocks(payload)
       rootBlocks <- readRootBlocks(payload)
@@ -28,6 +32,7 @@ object AstBlockStateParser {
   }
 
   private def parseWithKind(kind: String, rootBlocks: List[String], ctx: ParseContext): Either[String, AstTextParser.ParsedAst] = {
+    println(s"Parsing with kind '$kind' and rootBlocks: $rootBlocks")
     kind match {
       case "int" =>
         singleRoot(rootBlocks).flatMap(root => parseIntById(root, ctx)).map(v => AstTextParser.ParsedAst("int", v))
@@ -214,7 +219,9 @@ object AstBlockStateParser {
   private def parseStatementById(id: String, ctx: ParseContext): Either[String, Statement] = {
     parseNodeById(id, ctx).flatMap {
       case ParsedStatement(value) => Right(value)
-      case other => Left(s"Block '$id' is not a statement (found ${nodeKind(other)})")
+      case other =>
+        println(s"FAILURE: $other")
+        Left(s"Block '$id' is not a statement (found ${nodeKind(other)})")
     }
   }
 

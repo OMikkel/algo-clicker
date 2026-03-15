@@ -72,6 +72,7 @@ object JSONServer {
   def decodeClientMessage(json: String): Either[String, ClientMessage] = {
     println("Decoding client message: " + json)
     parseJsonObject(json).flatMap { map =>
+      println("Parsed JSON object: " + map)
       map.get("type") match {
         case Some("connect") =>
           stringField(map, "clientId").map(Connect.apply)
@@ -151,10 +152,15 @@ object JSONServer {
             writeFrame(out, OpPong, payload)
           case Some((OpText, payload)) =>
             val incomingJson = new String(payload, StandardCharsets.UTF_8)
-            val response: ServerMessage = decodeClientMessage(incomingJson) match {
+            println(incomingJson)
+            val response: ServerMessage = {
+              val decoded = decodeClientMessage(incomingJson)
+              println(s"decoded: $decoded")
+              decoded match {
               case Right(Command("run", cmdPayload)) => executeWithTracing(cmdPayload, in, out)
               case Right(msg) => route(msg)
               case Left(err) => Error(err)
+            }
             }
             writeFrame(out, OpText, encodeServerMessage(response).getBytes(StandardCharsets.UTF_8))
           case Some((_, _)) =>

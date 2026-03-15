@@ -6,7 +6,8 @@
   <component name="ChangeListManager">
     <list default="true" id="d6551a71-1d6c-4ad5-8b4c-7dd6ae6b9431" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/algo_backend/AstBlockStateParser.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/algo_backend/AstBlockStateParser.scala" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/algo_backend/AstTextParser.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/algo_backend/AstTextParser.scala" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/algo_backend/JSONServer.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/algo_backend/JSONServer.scala" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />

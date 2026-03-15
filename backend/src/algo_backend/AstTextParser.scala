@@ -7,6 +7,7 @@ object AstTextParser {
   final case class ParsedAst(kind: String, value: Any)
 
   def parse(kind: String, input: String): Either[String, ParsedAst] = {
+    println(s"Parsing input of kind '$kind': $input")
     val normalizedKind = kind.trim.toLowerCase match {
       case "" => "auto"
       case k => k
