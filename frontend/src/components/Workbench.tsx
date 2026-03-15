@@ -5,6 +5,7 @@ import {
 	CircleAlertIcon,
 	PlayIcon,
 	RefreshCwIcon,
+	StepForward,
 	Trash2Icon,
 } from "lucide-react";
 
@@ -14,7 +15,9 @@ export default function Workbench() {
 		resetApplication,
 		rerunApplication,
 		runApplication,
+		stepForward,
 		errorMessage,
+		runState,
 	} = useGlobalStateContext();
 	const initialProgramBlockId = rootBlocks[0];
 
@@ -23,12 +26,30 @@ export default function Workbench() {
 			<div className="flex flex-row items-center justify-between">
 				<h2 className="text-white text-lg font-bold">Workbench</h2>
 				<div className="flex gap-2">
-					<Button className="bg-blue-500" onClick={() => runApplication()}>
-						<PlayIcon className="inline-block w-5 h-5 mr-1" />
-					</Button>
-					<Button className="bg-yellow-500" onClick={() => rerunApplication()}>
-						<RefreshCwIcon className="inline-block w-5 h-5 mr-1" />
-					</Button>
+					{runState === "done" && (
+						<Button className="bg-blue-500" onClick={() => runApplication()}>
+							<PlayIcon className="inline-block w-5 h-5 mr-1" />
+						</Button>
+					)}
+					{runState === "running" && (
+						<Button className="bg-yellow-500 ">
+							<RefreshCwIcon className="inline-block w-5 h-5 mr-1 animate-spin" />
+						</Button>
+					)}
+					{runState === "idle" && (
+						<>
+							{/* <Button
+								className="bg-orange-500"
+								onClick={() => rerunApplication()}
+							>
+								<RefreshCwIcon className="inline-block w-5 h-5 mr-1" />
+							</Button> */}
+							<Button className="bg-yellow-500" onClick={() => stepForward()}>
+								<StepForward className="inline-block w-5 h-5 mr-1" />
+							</Button>
+						</>
+					)}
+
 					<Button className="bg-red-500" onClick={() => resetApplication()}>
 						<Trash2Icon className="inline-block w-5 h-5 mr-1" />
 					</Button>
@@ -52,7 +73,6 @@ export default function Workbench() {
 					</span>
 				</div>
 				<div className="h-px bg-white/20 my-2" />
-				<div>{errorMessage}</div>
 			</div>
 			<div className="w-full h-full bg-gray-800 p-4 rounded-md border-none">
 				{initialProgramBlockId ? (

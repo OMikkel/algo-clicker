@@ -28,7 +28,8 @@ export default function BlockDataEditor({
 	if (
 		block.type === "ArrayVar" ||
 		block.type === "IntVarLit" ||
-		block.type === "BoolVar"
+		block.type === "BoolVar" ||
+		block.type === "IntVarListLookup"
 	) {
 		return <IdentEditor block={block} editable={editable} />;
 	}

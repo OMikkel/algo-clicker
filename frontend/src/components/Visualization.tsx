@@ -1,4 +1,4 @@
-import { useRef, useEffect, useState } from "react";
+import { useRef, useEffect } from "react";
 import drawAlgo from "../drawing/algo";
 import { generateEnvironmentDrawables } from "../drawing/environments";
 import type { DrawableElement } from "../drawing/DrawableElement";
@@ -10,43 +10,72 @@ interface VisualizationProps {
 	height: number;
 }
 
+type Vec2DKeyframes = [number, Vec2D][];
+
+interface SwapAnimation {
+	lHandPos: Vec2DKeyframes;
+	leftObj: Vec2DKeyframes;
+	rHandPos: Vec2DKeyframes;
+	rightObj: Vec2DKeyframes;
+	eyeFocus: Vec2DKeyframes;
+}
+
 function Visualization({ width, height }: VisualizationProps) {
 	const canvasRef = useRef<HTMLCanvasElement | null>(null);
-	const startTime = performance.now();
-	const {env} = useGlobalStateContext()
-	
+	const startTimeRef = useRef(performance.now());
+	const eyeFocusRef = useRef(new Vec2D(width / 2, height / 2));
+	const pointerActiveRef = useRef(false);
+	const { env } = useGlobalStateContext();
+
 	useEffect(() => {
 		const canvas = canvasRef.current;
 		if (!canvas) return;
-		
+
 		const ctx = canvas.getContext("2d");
 		if (!ctx) return;
-		ctx.textBaseline = "top"
+		ctx.textBaseline = "top";
 		const objs = generateEnvironmentDrawables(env, ctx, height, width);
 
-		const [leftObj,rightObj] = [objs[1],objs[4]]
-		
-		const animation = leftObj && rightObj ? operations.compare(leftObj,rightObj) : null
+		const [leftObj, rightObj] = [objs[1], objs[4]];
+
+		const animation =
+			leftObj && rightObj ? operations.swap(leftObj, rightObj) : null;
+
+		const updateEyeFocusFromPointer = (event: MouseEvent) => {
+			const rect = canvas.getBoundingClientRect();
+			const pointerX = event.clientX - rect.left;
+			const pointerY = event.clientY - rect.top;
+			pointerActiveRef.current = true;
+			eyeFocusRef.current = new Vec2D(pointerX, pointerY);
+		};
+
+		const resetEyeFocus = () => {
+			pointerActiveRef.current = false;
+			eyeFocusRef.current = new Vec2D(width / 2, height / 2);
+		};
+
+		canvas.addEventListener("mousemove", updateEyeFocusFromPointer);
+		canvas.addEventListener("mouseleave", resetEyeFocus);
+
+		let animationFrameId: number;
 
 		const render = () => {
-			const time = (performance.now() - startTime) / 1000;
+			const time = (performance.now() - startTimeRef.current) / 1000;
 
 			ctx.clearRect(0, 0, width, height);
 
-			let eyeFocus: Vec2D = new Vec2D(200, 500);
+			let eyeFocus: Vec2D = eyeFocusRef.current;
 
-			if (animation)
-			{
+			if (!pointerActiveRef.current && animation) {
 				eyeFocus = keyframe(time, animation.eyeFocus);
 			}
 
 			drawAlgo.drawHeadAndBody(width / 2, 300, eyeFocus.X(), eyeFocus.Y(), ctx);
 
 			objs.forEach((v) => v.draw());
-			let rhand = rHandPosDefault
-			let lhand = lHandPosDefault
-			if (animation)
-			{
+			let rhand = rHandPosDefault;
+			let lhand = lHandPosDefault;
+			if (animation) {
 				rhand = keyframe(time, animation.rHandPos);
 				lhand = keyframe(time, animation.lHandPos);
 				const leftObjFrame = keyframe(time, animation.leftObj);
@@ -68,16 +97,22 @@ function Visualization({ width, height }: VisualizationProps) {
 			// Must only be run when testing:
 			//drawAlgo.drawEyeFocusPoint(eyeFocus.X(), eyeFocus.Y(), ctx);
 
-			requestAnimationFrame(render);
+			animationFrameId = requestAnimationFrame(render);
 		};
 
-		requestAnimationFrame(render);
-	}, [height, width, startTime]);
+		animationFrameId = requestAnimationFrame(render);
+
+		return () => {
+			cancelAnimationFrame(animationFrameId);
+			canvas.removeEventListener("mousemove", updateEyeFocusFromPointer);
+			canvas.removeEventListener("mouseleave", resetEyeFocus);
+		};
+	}, [env, height, width]);
 
 	return <canvas ref={canvasRef} width={width} height={height} />;
 }
 
-function keyframe(time: number, frames: [number, Vec2D][]) {
+function keyframe(time: number, frames: Vec2DKeyframes) {
 	for (let i = 0; i < frames.length - 1; i++) {
 		const [t1, v1] = frames[i];
 		const [t2, v2] = frames[i + 1];
@@ -90,24 +125,27 @@ function keyframe(time: number, frames: [number, Vec2D][]) {
 
 	return frames[frames.length - 1][1];
 }
-const lHandGrabOffset = new Vec2D(-15,35)
+const lHandGrabOffset = new Vec2D(-15, 35);
 const lHandPosDefault = new Vec2D(100, 500);
-const rHandGrabOffset = new Vec2D(-15,35)
+const rHandGrabOffset = new Vec2D(-15, 35);
 const rHandPosDefault = new Vec2D(300, 500);
 const eyeFocusDefault = new Vec2D(200, 500);
 
 const operations = {
-	"swap": (left: DrawableElement,right: DrawableElement) => {
-		const leftPos = left.position
-		const rightPos = right.position
+	swap: (left: DrawableElement, right: DrawableElement): SwapAnimation => {
+		const leftPos = left.position;
+		const rightPos = right.position;
 		const viaLeftPoint = lHandPosDefault.slerp(leftPos, 0.3);
 		const viaRightPoint = rHandPosDefault.slerp(rightPos, 0.3);
-		return ({
+		return {
 			lHandPos: [
 				[0, lHandPosDefault],
-				[1, leftPos.subtract(lHandGrabOffset).translateX(left.size.X()/2)],
-				[2, viaLeftPoint.subtract(lHandGrabOffset).translateX(left.size.X()/2)],
-				[3, rightPos.subtract(lHandGrabOffset).translateX(left.size.X()/2)],
+				[1, leftPos.subtract(lHandGrabOffset).translateX(left.size.X() / 2)],
+				[
+					2,
+					viaLeftPoint.subtract(lHandGrabOffset).translateX(left.size.X() / 2),
+				],
+				[3, rightPos.subtract(lHandGrabOffset).translateX(left.size.X() / 2)],
 				[4, lHandPosDefault],
 			],
 			leftObj: [

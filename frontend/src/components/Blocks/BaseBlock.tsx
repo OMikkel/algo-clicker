@@ -52,7 +52,7 @@ export default function BaseBlock({
 					</div>
 
 					{/* Render unique inputs like IntLit values here */}
-					{!template && config.slots.length == 0 && (
+					{!template && (
 						<div className="shrink-0">
 							<BlockDataEditor block={block} editable={editable} />
 						</div>

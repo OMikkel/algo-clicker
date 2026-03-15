@@ -11,6 +11,7 @@ export type ASTDefinition = {
     displayTitle?: string;
     helpText?: string;
     slots: Slot[];
+    editors?: any;
 };
 
 // 2. Define Category Arrays (for Reusability and Validation)
@@ -41,7 +42,6 @@ type AllBlockKeys = typeof BLOCK_GROUPS[keyof typeof BLOCK_GROUPS][number];
 
 export const BLOCK_REGISTRY: Record<AllBlockKeys, ASTDefinition> = {
     // Statements
-
     If: {
         color: "bg-blue-600",
         displayTitle: "If Statement",
@@ -93,8 +93,8 @@ export const BLOCK_REGISTRY: Record<AllBlockKeys, ASTDefinition> = {
         displayTitle: "Swap",
         helpText: "Swap the values of two variables.",
         slots: [
-            { id: "var1", label: "Variable 1", accepts: ["IntVarLit", "BoolVar", "ArrayVar"], max: 1 },
-            { id: "var2", label: "Variable 2", accepts: ["IntVarLit", "BoolVar", "ArrayVar"], max: 1 },
+            { id: "a", label: "Variable 1", accepts: ["IntVarLit", "BoolVar", "ArrayVar"], max: 1 },
+            { id: "b", label: "Variable 2", accepts: ["IntVarLit", "BoolVar", "ArrayVar"], max: 1 },
         ]
     },
     ArrayInsert: {
@@ -203,7 +203,6 @@ export const BLOCK_REGISTRY: Record<AllBlockKeys, ASTDefinition> = {
     IntVarListLookup: {
         color: "bg-purple-400",
         slots: [
-            { id: "ident", label: "Variable Id", accepts: ["Id"], max: 1 },
             { id: "index", label: "Index", accepts: IntType, max: 1 },
         ],
     },
