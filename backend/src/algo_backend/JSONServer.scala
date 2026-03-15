@@ -29,9 +29,9 @@ object JSONServer {
 
   case class Parsed(kind: String, value: String) extends ServerMessage
 
-  case class Ran(kind: String, value: String, intEnv: Map[String, Int], boolEnv: Map[String, Boolean], arrEnv: Map[String, List[Int]]) extends ServerMessage
+  case class Ran(kind: String, value: String, intEnv: Map[String, Int], boolEnv: Map[String, Boolean], arrEnv: Map[String, List[Int]], env: Map[String, Any]) extends ServerMessage
 
-  case class Trace(event: String, data: Map[String, Any], intEnv: Map[String, Int], boolEnv: Map[String, Boolean], arrEnv: Map[String, List[Int]]) extends ServerMessage
+  case class Trace(event: String, data: Map[String, Any], intEnv: Map[String, Int], boolEnv: Map[String, Boolean], arrEnv: Map[String, List[Int]], env: Map[String, Any]) extends ServerMessage
 
   case class Error(message: String) extends ServerMessage
 
@@ -102,18 +102,19 @@ object JSONServer {
       case Pong(timestampMs) => Map("type" -> "pong", "timestampMs" -> timestampMs)
       case Ack(action) => Map("type" -> "ack", "action" -> action)
       case Parsed(kind, value) => Map("type" -> "parsed", "kind" -> kind, "value" -> value)
-      case Ran(kind, value, intEnv, boolEnv, arrEnv) =>
+        case Ran(kind, value, intEnv, boolEnv, arrEnv, env) =>
         Map(
           "type" -> "ran",
           "kind" -> kind,
           "value" -> value,
           "intEnv" -> intEnv,
           "boolEnv" -> boolEnv,
-          "arrEnv" -> arrEnv
+          "arrEnv" -> arrEnv,
+          "env" -> env
         )
-      case Trace(event, data, intEnv, boolEnv, arrEnv) =>
+        case Trace(event, data, intEnv, boolEnv, arrEnv, env) =>
         (Map[String, Any]("type" -> "trace", "event" -> event) ++ data) +
-          ("intEnv" -> intEnv) + ("boolEnv" -> boolEnv) + ("arrEnv" -> arrEnv)
+          ("intEnv" -> intEnv) + ("boolEnv" -> boolEnv) + ("arrEnv" -> arrEnv) + ("env" -> env)
       case Error(message) => Map("type" -> "error", "message" -> message)
     }
     stringifyJson(map)
@@ -232,7 +233,21 @@ object JSONServer {
       case _ =>
         ("Unknown", Map.empty[String, Any])
     }
-    Trace(event, data, flattenIntEnv(env), flattenBoolEnv(env), flattenArrEnv(env))
+    Trace(event, data, flattenIntEnv(env), flattenBoolEnv(env), flattenArrEnv(env), envToJson(env))
+  }
+
+  private def envToJson(env: Ast.Env): Map[String, Any] = {
+    val parentJson: Any = env.parent_env match {
+      case Some(parent) => envToJson(parent)
+      case None => null
+    }
+
+    Map(
+      "intEnv" -> env.intEnv,
+      "boolEnv" -> env.boolEnv,
+      "arrEnv" -> env.arrEnv,
+      "parentEnv" -> parentJson
+    )
   }
 
   // Trace callbacks can run inside nested scope envs. Flatten the env chain so
@@ -257,9 +272,9 @@ object JSONServer {
 
   // Reads optional initialState from the run payload and seeds the Env accordingly.
   private def parseInitialEnv(payload: Map[String, Any]): Ast.Env = {
-    val state: Map[String, Any] = payload.get("initialState") match {
-      case Some(m: Map[_, _]) => m.asInstanceOf[Map[String, Any]]
-      case _ => Map.empty
+    val stateOpt: Option[Map[String, Any]] = payload.get("initialState") match {
+      case Some(m: Map[_, _]) => Some(m.asInstanceOf[Map[String, Any]])
+      case _ => None
     }
 
     def toInt(v: Any): Option[Int] = v match {
@@ -269,30 +284,43 @@ object JSONServer {
       case _ => None
     }
 
-    val intEnv: Map[String, Int] = state.get("intEnv") match {
-      case Some(m: Map[_, _]) =>
-        m.asInstanceOf[Map[String, Any]].flatMap { case (k, v) => toInt(v).map(k -> _) }
-      case _ => Map.empty
+    def parseEnv(state: Map[String, Any]): Ast.Env = {
+      val intEnv: Map[String, Int] = state.get("intEnv") match {
+        case Some(m: Map[_, _]) =>
+          m.asInstanceOf[Map[String, Any]].flatMap { case (k, v) => toInt(v).map(k -> _) }
+        case _ => Map.empty
+      }
+
+      val boolEnv: Map[String, Boolean] = state.get("boolEnv") match {
+        case Some(m: Map[_, _]) =>
+          m.asInstanceOf[Map[String, Any]].collect { case (k, v: Boolean) => k -> v }
+        case _ => Map.empty
+      }
+
+      val arrEnv: Map[String, List[Int]] = state.get("arrEnv") match {
+        case Some(m: Map[_, _]) =>
+          m.asInstanceOf[Map[String, Any]].flatMap {
+            case (k, vs: List[_]) =>
+              val ints = vs.flatMap(toInt)
+              if (ints.length == vs.length) Some(k -> ints) else None
+            case _ => None
+          }
+        case _ => Map.empty
+      }
+
+      val parentEnv: Option[Ast.Env] = state.get("parentEnv") match {
+        case Some(m: Map[_, _]) => Some(parseEnv(m.asInstanceOf[Map[String, Any]]))
+        case Some(null) => None
+        case _ => None
+      }
+
+      Ast.Env(intEnv, boolEnv, arrEnv, parentEnv)
     }
 
-    val boolEnv: Map[String, Boolean] = state.get("boolEnv") match {
-      case Some(m: Map[_, _]) =>
-        m.asInstanceOf[Map[String, Any]].collect { case (k, v: Boolean) => k -> v }
-      case _ => Map.empty
+    stateOpt match {
+      case Some(state) => parseEnv(state)
+      case None => Ast.Env(Map.empty, Map.empty, Map.empty, None)
     }
-
-    val arrEnv: Map[String, List[Int]] = state.get("arrEnv") match {
-      case Some(m: Map[_, _]) =>
-        m.asInstanceOf[Map[String, Any]].flatMap {
-          case (k, vs: List[_]) =>
-            val ints = vs.flatMap(toInt)
-            if (ints.length == vs.length) Some(k -> ints) else None
-          case _ => None
-        }
-      case _ => Map.empty
-    }
-
-    Ast.Env(intEnv, boolEnv, arrEnv, None)
   }
 
   private def parseAstPayload(payload: Map[String, Any]): Either[String, AstTextParser.ParsedAst] = {
@@ -319,7 +347,7 @@ object JSONServer {
         case _ => return Left(s"Unsupported parsed value for run: ${parsed.kind}")
       }
 
-      Right(Ran(parsed.kind, valueText, env.intEnv, env.boolEnv, env.arrEnv))
+        Right(Ran(parsed.kind, valueText, flattenIntEnv(env), flattenBoolEnv(env), flattenArrEnv(env), envToJson(env)))
     } catch {
       case t: Throwable => Left(Option(t.getMessage).getOrElse(t.toString))
     }

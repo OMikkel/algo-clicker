@@ -32,11 +32,34 @@ Server -> Client (`type` field):
 - `pong` - ping response (`timestampMs`)
 - `ack` - generic acknowledgement (`action`)
 - `parsed` - parse success (`kind`, `value`)
-- `ran` - run success (`kind`, `value`, `intEnv`, `boolEnv`, `arrEnv`)
-- `trace` - interpreter step event during run (`event`, event-specific fields, env snapshots)
+- `ran` - run success (`kind`, `value`, flattened env maps, and nested `env`)
+- `trace` - interpreter step event during run (`event`, event-specific fields, flattened env maps, and nested `env`)
 - `error` - validation/parse/runtime error (`message`)
 
 Trace flow: during `run`, server may send one or more `trace` messages and pause execution until the client sends `{"type":"continue"}` for each step.
+
+## Nested Environment JSON Shape
+
+`run` supports nested interpreter environments in `payload.initialState`, and `trace`/`ran` include the same shape in `env`.
+
+```json
+{
+  "intEnv": {"x": 5, "y": 71},
+  "boolEnv": {"maybe": false},
+  "arrEnv": {},
+  "parentEnv": {
+    "intEnv": {},
+    "boolEnv": {},
+    "arrEnv": {"A": [1, 2, 3, 4, 5]},
+    "parentEnv": null
+  }
+}
+```
+
+Notes:
+- `parentEnv` is recursive and can be nested to any depth.
+- Use `null` to terminate the parent chain.
+- Top-level `intEnv`/`boolEnv`/`arrEnv` in `trace` and `ran` are flattened snapshots for convenience.
 
 Example request sent by the web client:
 
@@ -84,7 +107,18 @@ Example run response:
   "value": "15",
   "intEnv": {},
   "boolEnv": {},
-  "arrEnv": {}
+  "arrEnv": {"A": [1, 2, 3, 4, 5]},
+  "env": {
+    "intEnv": {"x": 5},
+    "boolEnv": {},
+    "arrEnv": {},
+    "parentEnv": {
+      "intEnv": {},
+      "boolEnv": {},
+      "arrEnv": {"A": [1, 2, 3, 4, 5]},
+      "parentEnv": null
+    }
+  }
 }
 ```
 

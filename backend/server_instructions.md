@@ -122,6 +122,23 @@ Trace events are sent mid-execution; execution is paused until the client replie
 Rules:
 - `payload.initialState` is optional. When provided, pre-seeds the interpreter `Env`.
 - `initialState.intEnv`, `boolEnv`, `arrEnv` are all optional sub-objects.
+- `initialState.parentEnv` is optional and recursive.
+
+Nested environment shape (same as backend `Env`):
+
+```json
+{
+  "intEnv": {"x": 5, "y": 71},
+  "boolEnv": {"maybe": false},
+  "arrEnv": {},
+  "parentEnv": {
+    "intEnv": {},
+    "boolEnv": {},
+    "arrEnv": {"A": [1, 2, 3, 4, 5]},
+    "parentEnv": null
+  }
+}
+```
 
 ## Server -> Client Messages
 
@@ -195,11 +212,26 @@ Sent when parsing or validation fails, including:
   "value": "15",
   "intEnv": {},
   "boolEnv": {},
-  "arrEnv": {}
+  "arrEnv": {"A": [1, 2, 3, 4, 5]},
+  "env": {
+    "intEnv": {"x": 5},
+    "boolEnv": {},
+    "arrEnv": {},
+    "parentEnv": {
+      "intEnv": {},
+      "boolEnv": {},
+      "arrEnv": {"A": [1, 2, 3, 4, 5]},
+      "parentEnv": null
+    }
+  }
 }
 ```
 
 Sent after a successful `command` with `action = "run"`.
+
+Notes:
+- `intEnv`, `boolEnv`, `arrEnv` are flattened snapshots across the env chain.
+- `env` preserves scope structure exactly (`parentEnv` recursion).
 
 ### 7) Trace
 
@@ -212,7 +244,18 @@ Sent after a successful `command` with `action = "run"`.
   "value": 42,
   "intEnv": {},
   "boolEnv": {},
-  "arrEnv": { "A": [10, 42, 20, 30] }
+  "arrEnv": { "A": [10, 42, 20, 30] },
+  "env": {
+    "intEnv": {},
+    "boolEnv": {},
+    "arrEnv": {},
+    "parentEnv": {
+      "intEnv": {},
+      "boolEnv": {},
+      "arrEnv": { "A": [10, 42, 20, 30] },
+      "parentEnv": null
+    }
+  }
 }
 ```
 
