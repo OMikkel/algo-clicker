@@ -7,7 +7,7 @@ export const example_env: Environment = {
     "parentEnv": {
         "intEnv": {},
         "boolEnv":{},
-        "arrEnv":{"list":[1,2,3,4,5]},
+        "arrEnv":{"A":[1,2,3,4,5]},
         "parentEnv":null
     }
 }
