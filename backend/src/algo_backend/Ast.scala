@@ -28,16 +28,16 @@ object Ast {
 
   abstract sealed class IntVar extends IntType
 
-  case class IntVarLit(id: Id) extends IntVar
+  case class IntVarLit(ident: Id) extends IntVar
 
-  case class IntVarListLookup(id: Id, index: IntType) extends IntVar
+  case class IntVarListLookup(ident: Id, index: IntType) extends IntVar
 
 
   abstract sealed class BoolType
 
   case class BoolLit(b: Boolean) extends BoolType
 
-  case class BoolVar(id: Id) extends BoolType
+  case class BoolVar(ident: Id) extends BoolType
 
   case class BoolGreater(v1: IntType, v2: IntType) extends BoolType
 
@@ -62,7 +62,7 @@ object Ast {
 
   case class ArrayLit(values: List[Int]) extends ArrayType
 
-  case class ArrayVar(id: Id) extends ArrayType
+  case class ArrayVar(ident: Id) extends ArrayType
 
   case class ArrayRange(arr: ArrayType, startIndex: IntType, endIndex: IntType) extends ArrayType
 
