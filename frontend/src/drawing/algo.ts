@@ -34,23 +34,22 @@ function drawHead(xPos: number, yPos: number, size: number, eyeFocusX: number, e
 function drawEye(xPos: number, yPos: number, size: number, eyeFocusX: number, eyeFocusY: number, ctx: CanvasRenderingContext2D) {
     drawCircle(xPos, yPos, size, "white", ctx);
 
-    // All of this logic is bad in some ways.
-    const eyeToPointVectorX: number = eyeFocusX - xPos;
-    const eyeToPointVectorY: number = eyeFocusY - yPos;
-    const eyeToPointVectorLength: number = Math.sqrt(eyeToPointVectorX*eyeToPointVectorX + eyeToPointVectorY*eyeToPointVectorY)
+    const dx = eyeFocusX - xPos;
+    const dy = eyeFocusY - yPos;
 
-    let eyeToPointUnitVectorX: number = (eyeToPointVectorX / eyeToPointVectorLength);
-    let eyeToPointUnitVectorY: number = (eyeToPointVectorY / eyeToPointVectorLength);
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    const maxDist = size / 2;
 
-    if (eyeToPointVectorLength < 1) {
-        eyeToPointUnitVectorX = eyeToPointVectorX;
-        eyeToPointUnitVectorY = eyeToPointVectorY;
-    } else {
-        eyeToPointUnitVectorX *= size/2;
-        eyeToPointUnitVectorY *= size/2;
+    let offsetX = dx;
+    let offsetY = dy;
+
+    if (dist > maxDist && dist !== 0) {
+        const scale = maxDist / dist;
+        offsetX = dx * scale;
+        offsetY = dy * scale;
     }
 
-    drawPupil(xPos + eyeToPointUnitVectorX, yPos + eyeToPointUnitVectorY, size / 2, ctx);
+    drawPupil(xPos + offsetX, yPos + offsetY, size / 2, ctx);
 }
 
 function drawPupil(xPos: number, yPos: number, size: number, ctx: CanvasRenderingContext2D) {

@@ -39,7 +39,7 @@ function Visualization({ width, height }: VisualizationProps) {
 		const [leftObj, rightObj] = [objs[1], objs[4]];
 
 		const animation =
-			leftObj && rightObj ? operations.swap(leftObj, rightObj) : null;
+			leftObj && rightObj ? operations.compare(leftObj, rightObj) : null;
 
 		const updateEyeFocusFromPointer = (event: MouseEvent) => {
 			const rect = canvas.getBoundingClientRect();
