@@ -1,41 +1,44 @@
+import { Vec2D } from "./Vec2D";
 
 const drawAlgo = {
-    drawHeadAndBody: (xPos: number, yPos: number, eyeFocusX: number, eyeFocusY: number, ctx: CanvasRenderingContext2D) => {
+    drawHeadAndBody: (pos: Vec2D, eyeFocus: Vec2D, ctx: CanvasRenderingContext2D) => {
         const perspective: number = 0.3;
-        drawBody(xPos, yPos + 170, 50, 90, perspective, ctx);
-        drawNeck(xPos, yPos + 80, 20, 90, perspective, ctx);
-        drawHead(xPos, yPos, 60, eyeFocusX, eyeFocusY, ctx);
+        drawBody(new Vec2D(pos.X(), pos.Y() + 170), 50, 90, perspective, ctx);
+        drawNeck(new Vec2D(pos.X(), pos.Y() + 80), 20, 90, perspective, ctx);
+        drawHead(pos, 60, eyeFocus, ctx);
     },
-    drawArmsAndHands: (algoXPos: number, algoYPos: number, lArmXPos: number, lArmYPos: number, rArmXPos: number, rArmYPos: number, ctx: CanvasRenderingContext2D) => {
-        drawArm(algoXPos - 50, algoYPos + 95, Math.PI, lArmXPos, lArmYPos, -Math.PI / 2, 10, ctx);
-        drawHand(lArmXPos, lArmYPos, 30, ctx);
-        drawArm(algoXPos + 50, algoYPos + 95, 0, rArmXPos, rArmYPos, -Math.PI / 2, 10, ctx);
-        drawHand(rArmXPos, rArmYPos, 30, ctx);
+    drawArmsAndHands: (algoPos: Vec2D, lHandPos: Vec2D, rHandPos: Vec2D, ctx: CanvasRenderingContext2D) => {
+        drawArm(new Vec2D(algoPos.X() - 50, algoPos.Y() + 95), Math.PI, new Vec2D(lHandPos.X(), lHandPos.Y() - 40), -Math.PI / 2, 10, ctx);
+        drawHand(lHandPos, 30, ctx);
+
+        drawArm(new Vec2D(algoPos.X() + 50, algoPos.Y() + 95), 0, new Vec2D(rHandPos.X(), rHandPos.Y() - 40), -Math.PI / 2, 10, ctx);
+        drawHand(rHandPos, 30, ctx);
     },
     // For testing
-    drawEyeFocusPoint: (eyeFocusX: number, eyeFocusY: number, ctx: CanvasRenderingContext2D) => {
-        drawCircle(eyeFocusX, eyeFocusY, 10, "yellow", ctx);
+    drawEyeFocusPoint: (eyeFocus: Vec2D, ctx: CanvasRenderingContext2D) => {
+        drawCircle(eyeFocus, 10, "yellow", ctx);
     }
 }
 
 
 
 
-function drawHead(xPos: number, yPos: number, size: number, eyeFocusX: number, eyeFocusY: number, ctx: CanvasRenderingContext2D) {
-    drawCircle(xPos, yPos, size, "rgb(65, 179, 255)", ctx);
+function drawHead(pos: Vec2D, size: number, eyeFocus: Vec2D, ctx: CanvasRenderingContext2D) {
+    drawCircle(pos, size, "rgb(65, 179, 255)", ctx);
 
-    drawEye(xPos + size * 0.4, yPos + size * 0.1, size * 0.3, eyeFocusX, eyeFocusY, ctx);
-    drawEye(xPos - size * 0.4, yPos + size * 0.1, size * 0.3, eyeFocusX, eyeFocusY, ctx);
+    drawEye(new Vec2D(pos.X() + size * 0.4, pos.Y() + size * 0.1), size * 0.3, eyeFocus, ctx);
+    drawEye(new Vec2D(pos.X() - size * 0.4, pos.Y() + size * 0.1), size * 0.3, eyeFocus, ctx);
 
-    drawCylinder(xPos, yPos - size * 0.85, size * 0.03, size * 0.6, 0.3, "rgb(0, 153, 255)", "black", ctx)
-    drawCircle(xPos, yPos - size * 1.5, size * 0.1, "rgb(65, 179, 255)", ctx);
+
+    drawCylinder(new Vec2D(pos.X(), pos.Y() - size * 0.85), size * 0.03, size * 0.6, 0.3, "rgb(0, 153, 255)", "black", ctx)
+    drawCircle(new Vec2D(pos.X(), pos.Y() - size * 1.5), size * 0.1, "rgb(65, 179, 255)", ctx);
 }
 
-function drawEye(xPos: number, yPos: number, size: number, eyeFocusX: number, eyeFocusY: number, ctx: CanvasRenderingContext2D) {
-    drawCircle(xPos, yPos, size, "white", ctx);
+function drawEye(pos: Vec2D, size: number, eyeFocus: Vec2D, ctx: CanvasRenderingContext2D) {
+    drawCircle(pos, size, "white", ctx);
 
-    const dx = eyeFocusX - xPos;
-    const dy = eyeFocusY - yPos;
+    const dx = eyeFocus.X() - pos.X();
+    const dy = eyeFocus.Y() - pos.Y();
 
     const dist = Math.sqrt(dx * dx + dy * dy);
     const maxDist = size / 2;
@@ -49,48 +52,48 @@ function drawEye(xPos: number, yPos: number, size: number, eyeFocusX: number, ey
         offsetY = dy * scale;
     }
 
-    drawPupil(xPos + offsetX, yPos + offsetY, size / 2, ctx);
+    drawPupil(new Vec2D(pos.X() + offsetX, pos.Y() + offsetY), size / 2, ctx);
 }
 
-function drawPupil(xPos: number, yPos: number, size: number, ctx: CanvasRenderingContext2D) {
-    drawCircle(xPos, yPos, size, "black", ctx);
-    drawCircle(xPos + size * 0.4, yPos - size * 0.4, size * 0.3, "white", ctx);
+function drawPupil(pos: Vec2D, size: number, ctx: CanvasRenderingContext2D) {
+    drawCircle(pos, size, "black", ctx);
+    drawCircle(new Vec2D(pos.X() + size * 0.4, pos.Y() - size * 0.4), size * 0.3, "white", ctx);
 }
 
 
-function drawArm(fromX: number, fromY: number, fromDirection: number, toX: number, toY: number, toDirection: number, thickness: number, ctx: CanvasRenderingContext2D) {
+function drawArm(from: Vec2D, fromDirection: number, to: Vec2D, toDirection: number, thickness: number, ctx: CanvasRenderingContext2D) {
     ctx.strokeStyle = "rgb(144, 211, 255)";
     ctx.lineWidth = thickness;
 
-    const distance = Math.hypot(toX - fromX, toY - fromY);
+    const distance = Math.hypot(to.X() - from.X(), to.Y() - from.Y());
     const controlLength = distance * 0.4;
 
-    const c1x = fromX + Math.cos(fromDirection) * controlLength;
-    const c1y = fromY + Math.sin(fromDirection) * controlLength;
+    const c1x = from.X() + Math.cos(fromDirection) * controlLength;
+    const c1y = from.Y() + Math.sin(fromDirection) * controlLength;
 
-    const c2x = toX + Math.cos(toDirection) * controlLength;
-    const c2y = toY + Math.sin(toDirection) * controlLength;
+    const c2x = to.X() + Math.cos(toDirection) * controlLength;
+    const c2y = to.Y() + Math.sin(toDirection) * controlLength;
 
     ctx.beginPath();
-    ctx.moveTo(fromX, fromY);
-    ctx.bezierCurveTo(c1x, c1y, c2x, c2y, toX, toY);
+    ctx.moveTo(from.X(), from.Y());
+    ctx.bezierCurveTo(c1x, c1y, c2x, c2y, to.X(), to.Y());
     ctx.stroke();
 }
 
-function drawCircle(xPos: number, yPos: number, size: number, color: string, ctx: CanvasRenderingContext2D) {
+function drawCircle(pos: Vec2D, size: number, color: string, ctx: CanvasRenderingContext2D) {
     ctx.fillStyle = color;
     ctx.beginPath();
-    ctx.arc(xPos, yPos, size, 0, size * Math.PI);
+    ctx.arc(pos.X(), pos.Y(), size, 0, size * Math.PI);
     ctx.fill();
 }
 
-function drawHand(xPos: number, yPos: number, size: number, ctx: CanvasRenderingContext2D) {
+function drawHand(pos: Vec2D, size: number, ctx: CanvasRenderingContext2D) {
     const thickness = size * 0.5;
 
     const radius = size / 2;
 
     ctx.save();
-    ctx.translate(xPos, yPos + 15);
+    ctx.translate(pos.X(), pos.Y() - size * 0.75);
 
     // Magnet body
     ctx.beginPath();
@@ -112,30 +115,30 @@ function drawHand(xPos: number, yPos: number, size: number, ctx: CanvasRendering
     ctx.restore();
 }
 
-function drawBody(xPos: number, yPos: number, width: number, height: number, perspective: number, ctx: CanvasRenderingContext2D) {
-    drawCylinder(xPos, yPos, width, height, perspective, "rgb(65, 179, 255)", "rgb(144, 211, 255)", ctx);
+function drawBody(pos: Vec2D, width: number, height: number, perspective: number, ctx: CanvasRenderingContext2D) {
+    drawCylinder(pos, width, height, perspective, "rgb(65, 179, 255)", "rgb(144, 211, 255)", ctx);
 }
 
-function drawNeck(xPos: number, yPos: number, width: number, height: number, perspective: number, ctx: CanvasRenderingContext2D) {
-    drawCylinder(xPos, yPos, width, height, perspective, "rgb(0, 153, 255)", "lightgray", ctx);
+function drawNeck(pos: Vec2D, width: number, height: number, perspective: number, ctx: CanvasRenderingContext2D) {
+    drawCylinder(pos, width, height, perspective, "rgb(0, 153, 255)", "lightgray", ctx);
 }
 
-function drawCylinder(xPos: number, yPos: number, width: number, height: number, perspective: number, sideColor: string, topColor: string, ctx: CanvasRenderingContext2D) {
+function drawCylinder(pos: Vec2D, width: number, height: number, perspective: number, sideColor: string, topColor: string, ctx: CanvasRenderingContext2D) {
     // Bottom
     ctx.fillStyle = sideColor;
     ctx.beginPath();
-    ctx.ellipse(xPos, yPos, width, width * perspective, 0, 0, 2 * Math.PI);
+    ctx.ellipse(pos.X(), pos.Y(), width, width * perspective, 0, 0, 2 * Math.PI);
     ctx.fill();
 
     // Middle
     ctx.beginPath();
-    ctx.rect(xPos - width, yPos - height, 2 * width, height);
+    ctx.rect(pos.X() - width, pos.Y() - height, 2 * width, height);
     ctx.fill();
 
     // Top
     ctx.fillStyle = topColor;
     ctx.beginPath();
-    ctx.ellipse(xPos, yPos - height, width, width * perspective, 0, 0, 2 * Math.PI);
+    ctx.ellipse(pos.X(), pos.Y() - height, width, width * perspective, 0, 0, 2 * Math.PI);
     ctx.fill();
 }
 

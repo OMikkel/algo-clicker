@@ -1,4 +1,4 @@
-import type { Vec2D } from "./Vec2D"
+import { Vec2D } from "./Vec2D"
 
 export abstract class DrawableElement {
     size: Vec2D
