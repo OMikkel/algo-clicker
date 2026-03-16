@@ -24,6 +24,7 @@ interface SwapAnimation {
 type TracePayload = {
 	type?: string;
 	event?: string;
+	env?: unknown;
 	arr?: string;
 	index?: number;
 	index1?: number;
@@ -64,9 +65,10 @@ function Visualization({ width, height }: VisualizationProps) {
 		if (!ctx) return;
 		startTimeRef.current = performance.now();
 		ctx.textBaseline = "top";
-		const objs = generateEnvironmentDrawables(env, ctx, height, width);
+		const envForFrame = getEnvironmentFromTrace(latestTrace) ?? env;
+		const objs = generateEnvironmentDrawables(envForFrame, ctx, height, width);
 
-		const [leftObj, rightObj] = getTraceObjects(objs, env, latestTrace);
+		const [leftObj, rightObj] = getTraceObjects(objs, envForFrame, latestTrace);
 		const animation =
 			leftObj && rightObj
 				? operations.swap(leftObj, rightObj)
@@ -317,7 +319,7 @@ function getTraceObjects(
 	env: Environment,
 	trace: TracePayload | null,
 ): [DrawableElement | null, DrawableElement | null] {
-	if (!trace || trace.event !== "ArraySwap" || !trace.arr) {
+	if (!trace || trace.event !== "ArraySwap") {
 		return [null, null];
 	}
 
@@ -325,8 +327,16 @@ function getTraceObjects(
 		return [null, null];
 	}
 
-	const firstObj = getArrayElementDrawable(objs, env, trace.arr, trace.index1);
-	const secondObj = getArrayElementDrawable(objs, env, trace.arr, trace.index2);
+	let firstObj: DrawableElement | null = null;
+	let secondObj: DrawableElement | null = null;
+
+	if (trace.arr) {
+		firstObj = getArrayElementDrawable(objs, env, trace.arr, trace.index1);
+		secondObj = getArrayElementDrawable(objs, env, trace.arr, trace.index2);
+	} else {
+		firstObj = objs[trace.index1] ?? null;
+		secondObj = objs[trace.index2] ?? null;
+	}
 
 	if (!firstObj || !secondObj) {
 		return [null, null];
@@ -363,6 +373,83 @@ function getArrayElementDrawable(
 	}
 
 	return null;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+	return typeof value === "object" && value !== null;
+}
+
+function getEnvironmentFromTrace(trace: TracePayload | null): Environment | null {
+	if (!trace) return null;
+
+	if (isRecord(trace.env)) {
+		return coerceEnvironment(trace.env);
+	}
+
+	if (
+		isRecord(trace.intEnv) ||
+		isRecord(trace.boolEnv) ||
+		isRecord(trace.arrEnv) ||
+		trace.parentEnv !== undefined
+	) {
+		return coerceEnvironment(trace);
+	}
+
+	return null;
+}
+
+function coerceEnvironment(input: unknown): Environment {
+	if (!isRecord(input)) {
+		return {
+			intEnv: {},
+			boolEnv: {},
+			arrEnv: {},
+			parentEnv: null,
+		};
+	}
+
+	const intEnv: Record<string, number> = {};
+	const boolEnv: Record<string, boolean> = {};
+	const arrEnv: Record<string, number[]> = {};
+
+	if (isRecord(input.intEnv)) {
+		for (const [key, value] of Object.entries(input.intEnv)) {
+			if (typeof value === "number" && Number.isFinite(value)) {
+				intEnv[key] = value;
+			}
+		}
+	}
+
+	if (isRecord(input.boolEnv)) {
+		for (const [key, value] of Object.entries(input.boolEnv)) {
+			if (typeof value === "boolean") {
+				boolEnv[key] = value;
+			}
+		}
+	}
+
+	if (isRecord(input.arrEnv)) {
+		for (const [key, value] of Object.entries(input.arrEnv)) {
+			if (
+				Array.isArray(value) &&
+				value.every((n) => typeof n === "number" && Number.isFinite(n))
+			) {
+				arrEnv[key] = value;
+			}
+		}
+	}
+
+	const parentEnv =
+		input.parentEnv === null || input.parentEnv === undefined
+			? null
+			: coerceEnvironment(input.parentEnv);
+
+	return {
+		intEnv,
+		boolEnv,
+		arrEnv,
+		parentEnv,
+	};
 }
 
 export default Visualization;
