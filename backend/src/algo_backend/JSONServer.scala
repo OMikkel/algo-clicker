@@ -60,7 +60,7 @@ object JSONServer {
 
   def main(args: Array[String]): Unit = {
     val host = if (args.length > 0) args(0) else "0.0.0.0"
-    val port = if (args.length > 1) args(1).toInt else 8080
+    val port = if (args.length > 1) args(1).toInt else 8081
     start(host, port)
     println(s"JSON WebSocket server listening on ws://$host:$port")
     // Keep the JVM alive for this tiny server entrypoint.
