@@ -6,6 +6,12 @@ export type Slot = {
     max?: number;
 };
 
+export type Editor = {
+    targetSlot: string;
+    inputType: "text" | "number" | "boolean";
+    displayTitle?: string;
+}
+
 export type ASTDefinition = {
     color: string;
     displayTitle?: string;
@@ -22,7 +28,7 @@ const Statement = ["IntAssign", "BoolAssign", "ArrayAssign", "If", "While", "Swa
 
 // 3. Block Groups for Sidebar/UI
 export const BLOCK_GROUPS = {
-    Statements: ["If", "While", "IntAssign", "BoolAssign", "ArrayAssign", "Swap", "ArrayInsert", "ArrayRemove"],
+    Statements: ["Scope", "If", "While", "IntAssign", "BoolAssign", "ArrayAssign", "Swap", "ArrayInsert", "ArrayRemove"],
     IntOperations: ["IntLit", "IntVarLit", "IntVarListLookup", "IntPlus", "IntMinus", "IntMult", "IntDiv", "IntMod", "IntArrayLength"],
     BoolOperations: ["BoolLit", "BoolVar", "BoolGreater", "BoolGreaterEq", "BoolLess", "BoolLessEq", "BoolEq", "BoolNeq", "BoolAnd", "BoolOr", "BoolNot"],
     ArrayOperations: ["ArrayLit", "ArrayVar", "ArrayRange", "ArrayConcat"],
@@ -48,8 +54,8 @@ export const BLOCK_REGISTRY: Record<AllBlockKeys, ASTDefinition> = {
         helpText: "Execute a block of code if a condition is true.",
         slots: [
             { id: "cond", label: "IF", accepts: BoolType, max: 1 },
-            { id: "ifBlock", label: "THEN", accepts: Statement },
-            { id: "elseBlock", label: "ELSE", accepts: Statement },
+            { id: "ifBlock", label: "THEN", accepts: Statement, max: 1 },
+            { id: "elseBlock", label: "ELSE", accepts: Statement, max: 1 },
         ]
     },
     While: {
@@ -58,7 +64,7 @@ export const BLOCK_REGISTRY: Record<AllBlockKeys, ASTDefinition> = {
         helpText: "Execute a block of code while a condition is true.",
         slots: [
             { id: "cond", label: "COND", accepts: BoolType, max: 1 },
-            { id: "body", label: "BODY", accepts: Statement },
+            { id: "body", label: "BODY", accepts: Statement, max: 1 },
         ],
     },
     IntAssign: {
@@ -270,6 +276,15 @@ export const BLOCK_REGISTRY: Record<AllBlockKeys, ASTDefinition> = {
         slots: [
             { id: "a", label: "Left", accepts: ArrayType, max: 1 },
             { id: "b", label: "Right", accepts: ArrayType, max: 1 },
+        ],
+    },
+
+    Scope: {
+        color: "bg-indigo-600",
+        displayTitle: "Scope",
+        helpText: "Defines a new scope for variables, this allows multiple statements.",
+        slots: [
+            { id: "statements", label: "Statements", accepts: Statement },
         ],
     },
 
