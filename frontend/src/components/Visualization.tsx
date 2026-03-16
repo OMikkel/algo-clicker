@@ -92,35 +92,6 @@ function Visualization({ width, height }: VisualizationProps) {
 
 		let animationFrameId: number;
 
-		let swapEvent = null;
-		let new_env = null;
-		let [index1, index2] = [null, null];
-		document.addEventListener("algoclickertrace", (e) => {
-			let { event, env } = e.detail;
-			if (event == "ArraySwap") {
-				swapEvent = event;
-				new_env = env;
-				index1 = e.detail["index1"];
-				index2 = e.detail["index2"];
-				console.log("algoclicker", index1, index2);
-			}
-		});
-		const objs = generateEnvironmentDrawables(
-			new_env || env,
-			ctx,
-			height,
-			width,
-		);
-
-		let [leftObj, rightObj] =
-			swapEvent && index1 != null && index2 != null
-				? [objs[index1], objs[index2]]
-				: [null, null];
-		console.log(leftObj, rightObj);
-
-		const animation =
-			leftObj && rightObj ? operations.swap(leftObj, rightObj) : null;
-
 		const render = () => {
 			const time = (performance.now() - startTimeRef.current) / 1000;
 
