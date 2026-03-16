@@ -112,10 +112,12 @@ function Visualization({ width, height }: VisualizationProps) {
 				console.log("yes we are here");
 				rhand = keyframe(time, animation.rHandPos);
 				lhand = keyframe(time, animation.lHandPos);
-				const leftObjFrame = keyframe(time, animation.leftObj);
-				const rightObjFrame = keyframe(time, animation.rightObj);
-				leftObj.setPosition(leftObjFrame);
-				rightObj.setPosition(rightObjFrame);
+				if (leftObj && rightObj) {
+					const leftObjFrame = keyframe(time, animation.leftObj);
+					const rightObjFrame = keyframe(time, animation.rightObj);
+					leftObj.setPosition(leftObjFrame);
+					rightObj.setPosition(rightObjFrame);
+				}
 			}
 
 			drawAlgo.drawArmsAndHands(
