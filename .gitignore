@@ -5,3 +5,4 @@
 .scala-build
 .bsp
 .vscode
+*.xml

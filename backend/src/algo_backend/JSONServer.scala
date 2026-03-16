@@ -43,7 +43,7 @@ object JSONServer {
   private val OpPing = 0x9
   private val OpPong = 0xA
 
-  def start(host: String = "0.0.0.0", port: Int = 8080): ServerHandle = {
+  def start(host: String = "0.0.0.0", port: Int = 8081): ServerHandle = {
     val server = new ServerSocket()
     server.bind(new InetSocketAddress(host, port))
 
