@@ -6,7 +6,7 @@ This document describes the WebSocket JSON protocol implemented in `src/algo_bac
 
 - Transport: WebSocket (RFC6455)
 - Endpoint: `ws://<host>:<port>`
-- Default bind in server code: `127.0.0.1:8080`
+- Default bind in server code: `0.0.0.0:8081`
 - Client frames must be masked (standard WebSocket client behavior).
 
 ## Message Model

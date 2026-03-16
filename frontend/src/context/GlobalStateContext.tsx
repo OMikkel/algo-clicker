@@ -111,14 +111,21 @@ export default function GlobalStateProvider({
 	);
 
 	useEffect(() => {
+		let disposed = false;
 		// Initialize connection
 		// Allow overriding the backend URL at build/runtime via Vite env vars.
 		const defaultBackendUrl = import.meta.env.VITE_SCALA_BACKEND_URL ||
-			`${window.location.protocol === "https:" ? "wss" : "ws"}://${window.location.hostname}:8080`;
+			`${window.location.protocol === "https:" ? "wss" : "ws"}://${window.location.hostname}:8081`;
 		const ws = new WebSocket(defaultBackendUrl);
 
 		ws.onopen = () => {
 			console.log("Connected to Scala Backend", defaultBackendUrl);
+			ws.send(
+				JSON.stringify({
+					type: "connect",
+					clientId: "frontend-client",
+				}),
+			);
 		};
 
 		ws.onmessage = (event) => {
@@ -152,11 +159,17 @@ export default function GlobalStateProvider({
 			}
 		};
 
-		ws.onclose = () => {
-			console.log("Disconnected");
+		ws.onclose = (event) => {
+			if (disposed) return;
+			console.log("Disconnected", {
+				code: event.code,
+				reason: event.reason,
+				wasClean: event.wasClean,
+			});
 		};
 
 		ws.onerror = (error) => {
+			if (disposed) return;
 			console.error("WebSocket Error:", error);
 		};
 
@@ -164,6 +177,11 @@ export default function GlobalStateProvider({
 
 		// Cleanup on unmount
 		return () => {
+			disposed = true;
+			ws.onopen = null;
+			ws.onmessage = null;
+			ws.onclose = null;
+			ws.onerror = null;
 			ws.close();
 		};
 	}, []);
