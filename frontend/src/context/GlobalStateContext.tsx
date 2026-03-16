@@ -1,6 +1,7 @@
 import { DragDropProvider, DragOverlay } from "@dnd-kit/react";
 import React, { useEffect, useRef, useState } from "react";
 import { BLOCK_REGISTRY } from "../constants/AstConditions";
+import { emptyEnvironment, type Environment } from "../data-model";
 import type { Block, BlockId, Blocks } from "../types/blocks";
 import { createBlockFromAST } from "../utils/objects";
 
@@ -14,6 +15,7 @@ type GlobalState = {
 	blocks: Blocks;
 	rootBlocks: BlockId[];
 	templates: BlockId[];
+	env: Environment;
 	draggedBlockId: BlockId | null;
 	deleteBlock: (blockId: string) => void;
 	updateBlockData: <T>(blockId: string, newData: Partial<T>) => void;
@@ -75,6 +77,52 @@ const initialBlockState = (
 
 const GlobalStateContext = React.createContext<GlobalState | null>(null);
 
+const isObject = (value: unknown): value is Record<string, unknown> =>
+	typeof value === "object" && value !== null;
+
+const coerceEnvironment = (input: unknown): Environment => {
+	if (!isObject(input)) return emptyEnvironment();
+
+	const intEnv: Record<string, number> = {};
+	const boolEnv: Record<string, boolean> = {};
+	const arrEnv: Record<string, number[]> = {};
+
+	if (isObject(input.intEnv)) {
+		for (const [key, value] of Object.entries(input.intEnv)) {
+			if (typeof value === "number" && Number.isFinite(value)) {
+				intEnv[key] = value;
+			}
+		}
+	}
+
+	if (isObject(input.boolEnv)) {
+		for (const [key, value] of Object.entries(input.boolEnv)) {
+			if (typeof value === "boolean") {
+				boolEnv[key] = value;
+			}
+		}
+	}
+
+	if (isObject(input.arrEnv)) {
+		for (const [key, value] of Object.entries(input.arrEnv)) {
+			if (Array.isArray(value) && value.every((n) => typeof n === "number")) {
+				arrEnv[key] = value;
+			}
+		}
+	}
+
+	const parentEnv = input.parentEnv === null
+		? null
+		: coerceEnvironment(input.parentEnv);
+
+	return {
+		intEnv,
+		boolEnv,
+		arrEnv,
+		parentEnv,
+	};
+};
+
 export const useGlobalStateContext = (): GlobalState => {
 	const context = React.useContext(GlobalStateContext);
 	if (context == null) {
@@ -109,6 +157,7 @@ export default function GlobalStateProvider({
 			ArrayLit_Initial_ID,
 		),
 	);
+	const [env, setEnv] = useState<Environment>(emptyEnvironment());
 
 	useEffect(() => {
 		let disposed = false;
@@ -119,6 +168,10 @@ export default function GlobalStateProvider({
 		const ws = new WebSocket(defaultBackendUrl);
 
 		ws.onopen = () => {
+			if (disposed) {
+				ws.close();
+				return;
+			}
 			console.log("Connected to Scala Backend", defaultBackendUrl);
 			ws.send(
 				JSON.stringify({
@@ -133,6 +186,11 @@ export default function GlobalStateProvider({
 			const payload = JSON.parse(event.data);
 			// Handle server responses here (e.g., visualization updates)
 			switch (payload.type) {
+				case "trace":
+				case "ran": {
+					setEnv(coerceEnvironment(payload.env));
+					break;
+				}
 				case "error":
 					console.warn("Error from server:", payload.message);
 
@@ -178,11 +236,14 @@ export default function GlobalStateProvider({
 		// Cleanup on unmount
 		return () => {
 			disposed = true;
-			ws.onopen = null;
+			socketRef.current = null;
 			ws.onmessage = null;
 			ws.onclose = null;
 			ws.onerror = null;
-			ws.close();
+			if (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CLOSING) {
+				ws.onopen = null;
+				ws.close();
+			}
 		};
 	}, []);
 
@@ -239,8 +300,14 @@ export default function GlobalStateProvider({
 		) {
 			localStorage.removeItem("algo-playground-storage");
 			setBlockState(
-				initialBlockState(InitialProgramWithList_A_ID, ArrayAssign_Initial_ID),
+				initialBlockState(
+					InitialProgramWithList_A_ID,
+					ArrayAssign_Initial_ID,
+					ArrayVar_Initial_ID,
+					ArrayLit_Initial_ID,
+				),
 			);
+			setEnv(emptyEnvironment());
 		}
 	};
 
@@ -436,6 +503,7 @@ export default function GlobalStateProvider({
 				blocks: blockState.blocks,
 				rootBlocks: blockState.rootBlocks,
 				templates: blockState.templates,
+				env,
 				draggedBlockId,
 				deleteBlock,
 				updateBlockData,
