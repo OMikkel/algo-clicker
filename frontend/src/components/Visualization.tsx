@@ -24,7 +24,6 @@ interface SwapAnimation {
 type TracePayload = {
 	type?: string;
 	event?: string;
-	env?: unknown;
 	arr?: string;
 	index?: number;
 	index1?: number;
@@ -40,6 +39,7 @@ function Visualization({ width, height }: VisualizationProps) {
 	const canvasRef = useRef<HTMLCanvasElement | null>(null);
 	const startTimeRef = useRef(performance.now());
 	const eyeFocusRef = useRef(new Vec2D(width / 2, height / 2));
+	const pointerActiveRef = useRef(false);
 	const [latestTrace, setLatestTrace] = useState<TracePayload | null>(null);
 	const { env } = useGlobalStateContext();
 
@@ -64,27 +64,58 @@ function Visualization({ width, height }: VisualizationProps) {
 		if (!ctx) return;
 		startTimeRef.current = performance.now();
 		ctx.textBaseline = "top";
-		const envForFrame = getEnvironmentFromTrace(latestTrace) ?? env;
-		const objs = generateEnvironmentDrawables(envForFrame, ctx, height, width);
-
-		const [leftObj, rightObj] = getTraceObjects(objs, envForFrame, latestTrace);
-		const animation =
-			leftObj && rightObj
-				? operations.swap(leftObj, rightObj)
-				: latestTrace
-					? operations.wave()
-					: null;
 
 		const updateEyeFocusFromPointer = (event: MouseEvent) => {
 			const rect = canvas.getBoundingClientRect();
 			const pointerX = event.clientX - rect.left;
 			const pointerY = event.clientY - rect.top;
+			pointerActiveRef.current = true;
 			eyeFocusRef.current = new Vec2D(pointerX, pointerY);
 		};
 
-		window.addEventListener("mousemove", updateEyeFocusFromPointer);
+		const resetEyeFocus = () => {
+			pointerActiveRef.current = false;
+			eyeFocusRef.current = new Vec2D(width / 2, height / 2);
+		};
+
+		canvas.addEventListener("mousemove", updateEyeFocusFromPointer);
+		canvas.addEventListener("mouseleave", resetEyeFocus);
 
 		let animationFrameId: number;
+
+		let swapEvent = null;
+		let new_env = null;
+		let [index1, index2]: [number | null, number | null] = [null, null];
+		const onTraceSwap: EventListener = (e) => {
+			const customEvent = e as CustomEvent<TracePayload & { env?: unknown }>;
+			let { event, env } = customEvent.detail;
+			if (event == "ArraySwap") {
+				swapEvent = event;
+				new_env = env;
+				index1 = customEvent.detail["index1"] ?? null;
+				index2 = customEvent.detail["index2"] ?? null;
+				console.log("algoclicker", index1, index2);
+			}
+		};
+		document.addEventListener("algoclickertrace", onTraceSwap);
+		const objs = generateEnvironmentDrawables(
+			new_env || env,
+			ctx,
+			height,
+			width,
+		);
+
+		const [traceLeftObj, traceRightObj] = getTraceObjects(objs, env, latestTrace);
+		let [leftObj, rightObj] =
+			traceLeftObj && traceRightObj
+				? [traceLeftObj, traceRightObj]
+				: swapEvent && index1 != null && index2 != null
+				? [objs[index1], objs[index2]]
+				: [null, null];
+		console.log(leftObj, rightObj);
+
+		const animation =
+			leftObj && rightObj ? operations.swap(leftObj, rightObj) : null;
 
 		const render = () => {
 			const time = (performance.now() - startTimeRef.current) / 1000;
@@ -92,6 +123,10 @@ function Visualization({ width, height }: VisualizationProps) {
 			ctx.clearRect(0, 0, width, height);
 
 			let eyeFocus: Vec2D = eyeFocusRef.current;
+
+			if (!pointerActiveRef.current && animation) {
+				eyeFocus = keyframe(time, animation.eyeFocus);
+			}
 
 			drawAlgo.drawHeadAndBody(width / 2, 300, eyeFocus.X(), eyeFocus.Y(), ctx);
 
@@ -130,7 +165,9 @@ function Visualization({ width, height }: VisualizationProps) {
 
 		return () => {
 			cancelAnimationFrame(animationFrameId);
-			window.removeEventListener("mousemove", updateEyeFocusFromPointer);
+			canvas.removeEventListener("mousemove", updateEyeFocusFromPointer);
+			canvas.removeEventListener("mouseleave", resetEyeFocus);
+			document.removeEventListener("algoclickertrace", onTraceSwap);
 		};
 	}, [env, height, width, latestTrace]);
 
@@ -360,83 +397,6 @@ function getArrayElementDrawable(
 	}
 
 	return null;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-	return typeof value === "object" && value !== null;
-}
-
-function getEnvironmentFromTrace(trace: TracePayload | null): Environment | null {
-	if (!trace) return null;
-
-	if (isRecord(trace.env)) {
-		return coerceEnvironment(trace.env);
-	}
-
-	if (
-		isRecord(trace.intEnv) ||
-		isRecord(trace.boolEnv) ||
-		isRecord(trace.arrEnv) ||
-		trace.parentEnv !== undefined
-	) {
-		return coerceEnvironment(trace);
-	}
-
-	return null;
-}
-
-function coerceEnvironment(input: unknown): Environment {
-	if (!isRecord(input)) {
-		return {
-			intEnv: {},
-			boolEnv: {},
-			arrEnv: {},
-			parentEnv: null,
-		};
-	}
-
-	const intEnv: Record<string, number> = {};
-	const boolEnv: Record<string, boolean> = {};
-	const arrEnv: Record<string, number[]> = {};
-
-	if (isRecord(input.intEnv)) {
-		for (const [key, value] of Object.entries(input.intEnv)) {
-			if (typeof value === "number" && Number.isFinite(value)) {
-				intEnv[key] = value;
-			}
-		}
-	}
-
-	if (isRecord(input.boolEnv)) {
-		for (const [key, value] of Object.entries(input.boolEnv)) {
-			if (typeof value === "boolean") {
-				boolEnv[key] = value;
-			}
-		}
-	}
-
-	if (isRecord(input.arrEnv)) {
-		for (const [key, value] of Object.entries(input.arrEnv)) {
-			if (
-				Array.isArray(value) &&
-				value.every((n) => typeof n === "number" && Number.isFinite(n))
-			) {
-				arrEnv[key] = value;
-			}
-		}
-	}
-
-	const parentEnv =
-		input.parentEnv === null || input.parentEnv === undefined
-			? null
-			: coerceEnvironment(input.parentEnv);
-
-	return {
-		intEnv,
-		boolEnv,
-		arrEnv,
-		parentEnv,
-	};
 }
 
 export default Visualization;

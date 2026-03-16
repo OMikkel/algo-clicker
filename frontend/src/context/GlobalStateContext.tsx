@@ -14,9 +14,9 @@ export type BlockState = {
 
 type GlobalState = {
 	blocks: Blocks;
+	env: Environment;
 	rootBlocks: BlockId[];
 	templates: BlockId[];
-	env: Environment;
 	draggedBlockId: BlockId | null;
 	errorMessage: string | null;
 	runState: "done" | "idle" | "running" | "error";
@@ -84,52 +84,6 @@ const initialBlockState = (
 
 const GlobalStateContext = React.createContext<GlobalState | null>(null);
 
-const isObject = (value: unknown): value is Record<string, unknown> =>
-	typeof value === "object" && value !== null;
-
-const coerceEnvironment = (input: unknown): Environment => {
-	if (!isObject(input)) return emptyEnvironment();
-
-	const intEnv: Record<string, number> = {};
-	const boolEnv: Record<string, boolean> = {};
-	const arrEnv: Record<string, number[]> = {};
-
-	if (isObject(input.intEnv)) {
-		for (const [key, value] of Object.entries(input.intEnv)) {
-			if (typeof value === "number" && Number.isFinite(value)) {
-				intEnv[key] = value;
-			}
-		}
-	}
-
-	if (isObject(input.boolEnv)) {
-		for (const [key, value] of Object.entries(input.boolEnv)) {
-			if (typeof value === "boolean") {
-				boolEnv[key] = value;
-			}
-		}
-	}
-
-	if (isObject(input.arrEnv)) {
-		for (const [key, value] of Object.entries(input.arrEnv)) {
-			if (Array.isArray(value) && value.every((n) => typeof n === "number")) {
-				arrEnv[key] = value;
-			}
-		}
-	}
-
-	const parentEnv = input.parentEnv === null
-		? null
-		: coerceEnvironment(input.parentEnv);
-
-	return {
-		intEnv,
-		boolEnv,
-		arrEnv,
-		parentEnv,
-	};
-};
-
 export const useGlobalStateContext = (): GlobalState => {
 	const context = React.useContext(GlobalStateContext);
 	if (context == null) {
@@ -170,25 +124,11 @@ export default function GlobalStateProvider({
 	);
 
 	useEffect(() => {
-		let disposed = false;
 		// Initialize connection
-		// Allow overriding the backend URL at build/runtime via Vite env vars.
-		const defaultBackendUrl = import.meta.env.VITE_SCALA_BACKEND_URL ||
-			`${window.location.protocol === "https:" ? "wss" : "ws"}://${window.location.hostname}:8081`;
-		const ws = new WebSocket(defaultBackendUrl);
+		const ws = new WebSocket(import.meta.env.VITE_SCALA_BACKEND_URL);
 
 		ws.onopen = () => {
-			if (disposed) {
-				ws.close();
-				return;
-			}
-			console.log("Connected to Scala Backend", defaultBackendUrl);
-			ws.send(
-				JSON.stringify({
-					type: "connect",
-					clientId: "frontend-client",
-				}),
-			);
+			console.log("Connected to Scala Backend");
 		};
 
 		ws.onmessage = (event) => {
@@ -205,22 +145,16 @@ export default function GlobalStateProvider({
 						}),
 					);
 					break;
-				case "ran": {
-					updateBlockState((p) => ({
-						...p,
-						env: coerceEnvironment(payload.env),
-					}));
-					break;
-				}
 				case "error":
 					console.warn("Error from server:", payload.message);
 					setErrorMessage(payload.message);
 					setRunState("done");
+
 					// const causingBlockIdMatch = payload.message.match(/Block '(\w+)'/);
 					// console.log("Regex match result:", causingBlockIdMatch);
 					// if (showAlert) {
 					// 	alert(`Technical details:\n${payload.message}`);
-					//}
+					// }
 
 					break;
 				// case "parsed":
@@ -237,20 +171,14 @@ export default function GlobalStateProvider({
 				default:
 					console.warn("Unhandled message type:", payload.type);
 					setRunState("done");
-				}
+			}
 		};
 
-		ws.onclose = (event) => {
-			if (disposed) return;
-			console.log("Disconnected", {
-				code: event.code,
-				reason: event.reason,
-				wasClean: event.wasClean,
-			});
+		ws.onclose = () => {
+			console.log("Disconnected");
 		};
 
 		ws.onerror = (error) => {
-			if (disposed) return;
 			console.error("WebSocket Error:", error);
 		};
 
@@ -258,15 +186,7 @@ export default function GlobalStateProvider({
 
 		// Cleanup on unmount
 		return () => {
-			disposed = true;
-			socketRef.current = null;
-			ws.onmessage = null;
-			ws.onclose = null;
-			ws.onerror = null;
-			if (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CLOSING) {
-				ws.onopen = null;
-				ws.close();
-			}
+			ws.close();
 		};
 	}, []);
 
@@ -324,6 +244,7 @@ export default function GlobalStateProvider({
 	};
 
 	const rerunApplication = () => {
+		console.log("Re-running application with blocks:", blockState);
 		runApplication();
 	};
 
@@ -408,12 +329,11 @@ export default function GlobalStateProvider({
 			});
 
 			console.log(`Recursively deleted ${idsToDelete.size} blocks.`);
-			
+
 			return {
 				...prev,
 				blocks: nextBlocks as Blocks,
 				rootBlocks: nextRoot,
-				templates: prev.templates,
 			};
 		});
 	};
@@ -636,6 +556,7 @@ export default function GlobalStateProvider({
 					}
 					parent[slot] = childId;
 				}
+
 				nextBlocks[parentId] = parent;
 				nextBlocks[childId] = {
 					...nextBlocks[childId],
@@ -652,7 +573,6 @@ export default function GlobalStateProvider({
 				// If dragging from template, create a new block instance instead of moving the template itself
 				const templateType = nextBlocks[sourceId].type;
 				const newBlock = createBlockFromAST(templateType, "", "root") as Block;
-
 				nextBlocks[newBlock.id] = newBlock;
 
 				const didAttach = attachChildToTarget(
@@ -670,9 +590,9 @@ export default function GlobalStateProvider({
 					newBlock,
 					"and updated state:",
 					{
+						templates: prev.templates,
 						blocks: nextBlocks,
 						rootBlocks: nextRoot,
-						templates: prev.templates,
 					},
 				);
 				return {
