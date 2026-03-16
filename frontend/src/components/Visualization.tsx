@@ -40,7 +40,6 @@ function Visualization({ width, height }: VisualizationProps) {
 	const canvasRef = useRef<HTMLCanvasElement | null>(null);
 	const startTimeRef = useRef(performance.now());
 	const eyeFocusRef = useRef(new Vec2D(width / 2, height / 2));
-	const pointerActiveRef = useRef(false);
 	const [latestTrace, setLatestTrace] = useState<TracePayload | null>(null);
 	const { env } = useGlobalStateContext();
 
@@ -80,17 +79,10 @@ function Visualization({ width, height }: VisualizationProps) {
 			const rect = canvas.getBoundingClientRect();
 			const pointerX = event.clientX - rect.left;
 			const pointerY = event.clientY - rect.top;
-			pointerActiveRef.current = true;
 			eyeFocusRef.current = new Vec2D(pointerX, pointerY);
 		};
 
-		const resetEyeFocus = () => {
-			pointerActiveRef.current = false;
-			eyeFocusRef.current = new Vec2D(width / 2, height / 2);
-		};
-
-		canvas.addEventListener("mousemove", updateEyeFocusFromPointer);
-		canvas.addEventListener("mouseleave", resetEyeFocus);
+		window.addEventListener("mousemove", updateEyeFocusFromPointer);
 
 		let animationFrameId: number;
 
@@ -100,10 +92,6 @@ function Visualization({ width, height }: VisualizationProps) {
 			ctx.clearRect(0, 0, width, height);
 
 			let eyeFocus: Vec2D = eyeFocusRef.current;
-
-			if (!pointerActiveRef.current && animation) {
-				eyeFocus = keyframe(time, animation.eyeFocus);
-			}
 
 			drawAlgo.drawHeadAndBody(width / 2, 300, eyeFocus.X(), eyeFocus.Y(), ctx);
 
@@ -142,8 +130,7 @@ function Visualization({ width, height }: VisualizationProps) {
 
 		return () => {
 			cancelAnimationFrame(animationFrameId);
-			canvas.removeEventListener("mousemove", updateEyeFocusFromPointer);
-			canvas.removeEventListener("mouseleave", resetEyeFocus);
+			window.removeEventListener("mousemove", updateEyeFocusFromPointer);
 		};
 	}, [env, height, width, latestTrace]);
 
