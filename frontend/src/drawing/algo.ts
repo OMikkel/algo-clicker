@@ -37,22 +37,19 @@ function drawHead(pos: Vec2D, size: number, eyeFocus: Vec2D, ctx: CanvasRenderin
 function drawEye(pos: Vec2D, size: number, eyeFocus: Vec2D, ctx: CanvasRenderingContext2D) {
     drawCircle(pos, size, "white", ctx);
 
-    const dx = eyeFocus.X() - pos.X();
-    const dy = eyeFocus.Y() - pos.Y();
+    const eyeToFocus: Vec2D = eyeFocus.subtract(pos)
 
-    const dist = Math.sqrt(dx * dx + dy * dy);
+    const dist: number = eyeToFocus.norm()
     const maxDist = size / 2;
 
-    let offsetX = dx;
-    let offsetY = dy;
+    let offset = eyeToFocus;
 
     if (dist > maxDist && dist !== 0) {
         const scale = maxDist / dist;
-        offsetX = dx * scale;
-        offsetY = dy * scale;
+        offset = eyeToFocus.scale(scale);
     }
 
-    drawPupil(new Vec2D(pos.X() + offsetX, pos.Y() + offsetY), size / 2, ctx);
+    drawPupil(pos.add(offset), size / 2, ctx);
 }
 
 function drawPupil(pos: Vec2D, size: number, ctx: CanvasRenderingContext2D) {
