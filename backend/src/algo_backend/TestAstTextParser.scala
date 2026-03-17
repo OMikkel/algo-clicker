@@ -153,6 +153,90 @@ object TestAstTextParser {
     )
     assert(parsedScope.exists(_.kind == "scope"))
 
+    val explicitScopeBlockState: Map[String, Any] = Map(
+      "blocks" -> Map(
+        "scope-root" -> Map(
+          "type" -> "Scope",
+          "id" -> "scope-root",
+          "parentId" -> "root",
+          "statements" -> List("assign-a")
+        ),
+        "assign-a" -> Map(
+          "type" -> "IntAssign",
+          "id" -> "assign-a",
+          "parentId" -> "scope-root",
+          "variable" -> "var-a",
+          "value" -> "lit-2"
+        ),
+        "var-a" -> Map(
+          "type" -> "IntVarLit",
+          "id" -> "var-a",
+          "parentId" -> "assign-a",
+          "ident" -> "a"
+        ),
+        "lit-2" -> Map(
+          "type" -> "IntLit",
+          "id" -> "lit-2",
+          "parentId" -> "assign-a",
+          "v" -> 2
+        )
+      ),
+      "rootBlocks" -> List("scope-root")
+    )
+
+    val parsedExplicitScope = AstBlockStateParser.parsePayload("auto", explicitScopeBlockState)
+    assert(parsedExplicitScope.exists(_.kind == "scope"))
+    assert(parsedExplicitScope.exists(_.value == Scope(List(IntAssign(IntVarLit("a"), IntLit(2))))))
+
+    val ifWithScopeBlockState: Map[String, Any] = Map(
+      "blocks" -> Map(
+        "if-root" -> Map(
+          "type" -> "If",
+          "id" -> "if-root",
+          "parentId" -> "root",
+          "cond" -> "bool-true",
+          "ifBlock" -> List("scope-then"),
+          "elseBlock" -> List.empty[Any]
+        ),
+        "bool-true" -> Map(
+          "type" -> "BoolLit",
+          "id" -> "bool-true",
+          "parentId" -> "if-root",
+          "b" -> true
+        ),
+        "scope-then" -> Map(
+          "type" -> "Scope",
+          "id" -> "scope-then",
+          "parentId" -> "if-root",
+          "statements" -> List("assign-b")
+        ),
+        "assign-b" -> Map(
+          "type" -> "IntAssign",
+          "id" -> "assign-b",
+          "parentId" -> "scope-then",
+          "variable" -> "var-b",
+          "value" -> "lit-3"
+        ),
+        "var-b" -> Map(
+          "type" -> "IntVarLit",
+          "id" -> "var-b",
+          "parentId" -> "assign-b",
+          "ident" -> "b"
+        ),
+        "lit-3" -> Map(
+          "type" -> "IntLit",
+          "id" -> "lit-3",
+          "parentId" -> "assign-b",
+          "v" -> 3
+        )
+      ),
+      "rootBlocks" -> List("if-root")
+    )
+
+    val parsedIfWithScope = AstBlockStateParser.parsePayload("auto", ifWithScopeBlockState)
+    assert(parsedIfWithScope.exists(_.kind == "statement"))
+    assert(parsedIfWithScope.exists(_.value == If(BoolLit(true), Scope(List(IntAssign(IntVarLit("b"), IntLit(3)))), Scope(List.empty))))
+
     val parsedProgramAuto = AstBlockStateParser.parsePayload("auto", initialProgramBlockState)
     assert(parsedProgramAuto.exists(_.kind == "program"))
     assert(parsedProgramAuto.exists(_.value == InitialProgramWithList_A(

@@ -4,6 +4,10 @@ import { BLOCK_REGISTRY } from "../constants/AstConditions";
 import { emptyEnvironment, type Environment } from "../data-model";
 import type { Block, BlockId, Blocks } from "../types/blocks";
 import { createBlockFromAST } from "../utils/objects";
+import {
+	loadLegacySolutionFromLocalStorage,
+	PLAYGROUND_STORAGE_KEY,
+} from "../utils/solutionStorage";
 import { FlameKindling } from "lucide-react";
 
 export type BlockState = {
@@ -27,6 +31,7 @@ type GlobalState = {
 	rerunApplication: () => void;
 	resetApplication: () => void;
 	stepForward: () => void;
+	replaceBlockState: (nextState: BlockState) => void;
 };
 
 const ASTs: Block[] = Object.keys(BLOCK_REGISTRY).map((key) =>
@@ -200,11 +205,22 @@ export default function GlobalStateProvider({
 	// }[readyState];
 
 	useEffect(() => {
-		const storedData = window.localStorage.getItem("algo-playground-storage");
-		if (storedData) {
-			setBlockState(JSON.parse(storedData));
+		const fallbackState = initialBlockState(
+			InitialProgramWithList_A_ID,
+			ArrayAssign_Initial_ID,
+			ArrayVar_Initial_ID,
+			ArrayLit_Initial_ID,
+		);
+		const restoredState = loadLegacySolutionFromLocalStorage(fallbackState);
+		if (restoredState) {
+			setBlockState(restoredState);
 		}
-	}, []);
+	}, [
+		ArrayAssign_Initial_ID,
+		ArrayLit_Initial_ID,
+		ArrayVar_Initial_ID,
+		InitialProgramWithList_A_ID,
+	]);
 
 	const runApplication = () => {
 		const ws = socketRef.current;
@@ -255,7 +271,7 @@ export default function GlobalStateProvider({
 				"Are you sure you want to reset the application? This cannot be undone.",
 			)
 		) {
-			localStorage.removeItem("algo-playground-storage");
+			localStorage.removeItem(PLAYGROUND_STORAGE_KEY);
 			setBlockState(
 				initialBlockState(
 					InitialProgramWithList_A_ID,
@@ -372,11 +388,19 @@ export default function GlobalStateProvider({
 			const newState = callback(prev);
 			// Save the NEW state immediately
 			window.localStorage.setItem(
-				"algo-playground-storage",
+				PLAYGROUND_STORAGE_KEY,
 				JSON.stringify(newState),
 			);
 			return newState;
 		});
+	};
+
+	const replaceBlockState = (nextState: BlockState) => {
+		setBlockState(nextState);
+		window.localStorage.setItem(
+			PLAYGROUND_STORAGE_KEY,
+			JSON.stringify(nextState),
+		);
 	};
 
 	const onDragEnd = (event: any) => {
@@ -651,6 +675,7 @@ export default function GlobalStateProvider({
 				rerunApplication,
 				resetApplication,
 				stepForward,
+				replaceBlockState,
 				env: blockState.env,
 			}}
 		>

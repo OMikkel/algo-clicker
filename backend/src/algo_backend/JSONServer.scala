@@ -103,18 +103,18 @@ object JSONServer {
       case Ack(action) => Map("type" -> "ack", "action" -> action)
       case Parsed(kind, value) => Map("type" -> "parsed", "kind" -> kind, "value" -> value)
         case Ran(kind, value, intEnv, boolEnv, arrEnv, env) =>
-        Map(
-          "type" -> "ran",
-          "kind" -> kind,
-          "value" -> value,
-          "intEnv" -> intEnv,
-          "boolEnv" -> boolEnv,
-          "arrEnv" -> arrEnv,
-          "env" -> env
-        )
+            Map(
+            "type" -> "ran",
+            "kind" -> kind,
+            "value" -> value,
+            "intEnv" -> intEnv,
+            "boolEnv" -> boolEnv,
+            "arrEnv" -> arrEnv,
+            "env" -> env
+            )
         case Trace(event, data, intEnv, boolEnv, arrEnv, env) =>
-        (Map[String, Any]("type" -> "trace", "event" -> event) ++ data) +
-          ("intEnv" -> intEnv) + ("boolEnv" -> boolEnv) + ("arrEnv" -> arrEnv) + ("env" -> env)
+            (Map[String, Any]("type" -> "trace", "event" -> event) ++ data) +
+                ("intEnv" -> intEnv) + ("boolEnv" -> boolEnv) + ("arrEnv" -> arrEnv) + ("env" -> env)
       case Error(message, id, slot) =>
         Map("type" -> "error", "message" -> message, "id" -> id, "slot" -> slot)
     }

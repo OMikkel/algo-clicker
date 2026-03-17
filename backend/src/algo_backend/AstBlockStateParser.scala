@@ -11,6 +11,7 @@ object AstBlockStateParser {
   private final case class ParsedBool(value: BoolType) extends ParsedNode
   private final case class ParsedArray(value: ArrayType) extends ParsedNode
   private final case class ParsedStatement(value: Statement) extends ParsedNode
+  private final case class ParsedScope(value: Scope) extends ParsedNode
   private final case class ParsedProgram(value: InitialProgramWithList_A) extends ParsedNode
 
   def parsePayload(kind: String, payload: Map[String, Any]): Either[String, AstTextParser.ParsedAst] = {
@@ -54,6 +55,7 @@ object AstBlockStateParser {
             case ParsedBool(v) => AstTextParser.ParsedAst("bool", v)
             case ParsedArray(v) => AstTextParser.ParsedAst("array", v)
             case ParsedStatement(v) => AstTextParser.ParsedAst("statement", v)
+            case ParsedScope(v) => AstTextParser.ParsedAst("scope", v)
             case ParsedProgram(v) => AstTextParser.ParsedAst("program", v)
           }
         } else {
@@ -64,11 +66,23 @@ object AstBlockStateParser {
   }
 
   private def parseScopeFromRoots(rootBlocks: List[String], ctx: ParseContext): Either[String, Scope] = {
-    traverse(rootBlocks)(id => parseStatementById(id, ctx)).map(Scope.apply)
+    parseStatementLikeIds(rootBlocks, ctx)
   }
 
   private def parseStatementList(ids: List[String], ctx: ParseContext, ownerType: String, field: String): Either[String, Scope] = {
-    traverse(ids)(id => parseStatementById(id, ctx)).left.map(err => s"$ownerType.$field: $err").map(Scope.apply)
+    parseStatementLikeIds(ids, ctx).left.map(err => s"$ownerType.$field: $err")
+  }
+
+  private def parseStatementLikeIds(ids: List[String], ctx: ParseContext): Either[String, Scope] = {
+    traverse(ids)(id => parseStatementLikeById(id, ctx)).map(statements => Scope(statements.flatten))
+  }
+
+  private def parseStatementLikeById(id: String, ctx: ParseContext): Either[String, List[Statement]] = {
+    parseNodeById(id, ctx).flatMap {
+      case ParsedStatement(value) => Right(List(value))
+      case ParsedScope(value) => Right(value.statements)
+      case other => Left(s"Block '$id' is not a statement or scope (found ${nodeKind(other)})")
+    }
   }
 
   private def parseNodeById(id: String, ctx: ParseContext): Either[String, ParsedNode] = {
@@ -222,6 +236,12 @@ object AstBlockStateParser {
           a <- refAsIntVar(block, "a", id, ctx)
           b <- refAsIntVar(block, "b", id, ctx)
         } yield ParsedStatement(Swap(a, b))
+
+      case "Scope" =>
+        for {
+          statements <- stringListField(block, "statements", id)
+          parsedScope <- parseStatementList(statements, ctx, "Scope", "statements")
+        } yield ParsedScope(parsedScope)
 
       case "ArrayLit" =>
         intListField(block, "values", id).map(v => ParsedArray(ArrayLit(v)))
@@ -418,6 +438,7 @@ object AstBlockStateParser {
     case ParsedBool(_) => "bool"
     case ParsedArray(_) => "array"
     case ParsedStatement(_) => "statement"
+    case ParsedScope(_) => "scope"
     case ParsedProgram(_) => "program"
   }
 
