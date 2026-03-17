@@ -7,6 +7,7 @@ export class Vec2D {
     translate = (v: Vec2D) => new Vec2D(this.x + v.X(), this.y + v.Y())
     translateX = (v_x: number) => new Vec2D(this.x + v_x, this.y)
     translateY = (v_y: number) => new Vec2D(this.x, this.y + v_y)
+    add = (b: Vec2D) => new Vec2D(this.x + b.X(), this.y + b.Y())
     subtract = (b: Vec2D) => new Vec2D(this.x + (-b.X()), this.y + (-b.Y()))
     scale = (scalar: number) => new Vec2D(this.X() * scalar, this.Y() * scalar)
     norm = () => Math.sqrt(this.x ** 2 + this.y ** 2);
